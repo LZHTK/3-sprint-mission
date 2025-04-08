@@ -4,40 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="08140402-956f-48d4-b229-3a6d3ecba6ec" name="Changes" comment="feat: 순수한 main으로 되돌리기" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ExternalProjectsManager">
-    <system id="GRADLE">
-      <state>
-        <projects_view>
-          <tree_state>
-            <expand />
-            <select />
-          </tree_state>
-        </projects_view>
-      </state>
-    </system>
   </component>
-  <component name="TaskManager">
-    <servers />
   </component>
-  <component name="Vcs.Log.Tabs.Properties">
-    <option name="TAB_STATES">
-      <map>
-        <entry key="MAIN">
-          <value>
-            <State />
-          </value>
-        </entry>
-      </map>
-    </option>
   </component>
-  <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: 순수한 main으로 되돌리기" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: 순수한 main으로 되돌리기" />
   </component>
 </project>
