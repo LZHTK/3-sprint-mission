@@ -64,6 +64,8 @@ public class BasicUserService implements UserService {
     UserStatus userStatus = new UserStatus(createdUser.getId(), now);
     userStatusRepository.save(userStatus);
 
+    System.out.println("프로필 ID : " + user.getProfileId());
+
     return createdUser;
   }
 
