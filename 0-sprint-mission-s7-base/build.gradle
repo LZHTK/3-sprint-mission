@@ -9,7 +9,7 @@ ext {
 }
 
 group = 'com.sprint.mission'
-version = '0.0.1-SNAPSHOT'
+version = '1.2.-M8'
 
 java {
     toolchain {
@@ -45,7 +45,6 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    implementation 'de.codecentric:spring-boot-admin-starter-client:3.4.5'
 }
 dependencyManagement {
     imports {
