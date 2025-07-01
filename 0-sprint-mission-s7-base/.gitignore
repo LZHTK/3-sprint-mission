@@ -44,3 +44,13 @@ bin/
 ### 숨김 파일 ###
 .*
 !.gitignore
+
+# 환경 변수 파일 (보안상 형상관리에서 제외)
+.env
+.env.local
+.env.*.local
+
+# Docker 볼륨 데이터
+postgres_data/
+app_storage/
+
