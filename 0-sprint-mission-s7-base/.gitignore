@@ -44,11 +44,16 @@ bin/
 ### 숨김 파일 ###
 .*
 !.gitignore
+!.dockerignore
 
 # 환경 변수 파일 (보안상 형상관리에서 제외)
 .env
 .env.local
 .env.*.local
+
+# 로그 파일들 (Spring Boot 기본)
+*.log
+logs/
 
 # Docker 볼륨 데이터
 postgres_data/

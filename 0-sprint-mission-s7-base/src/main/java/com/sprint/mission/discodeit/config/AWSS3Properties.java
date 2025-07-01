@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @Component
-@ConfigurationProperties(prefix = "aws.s3")
+@ConfigurationProperties(prefix = "discodeit.storage.s3")
 public class AWSS3Properties {
 
     private String accessKey;
