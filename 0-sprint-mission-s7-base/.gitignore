@@ -48,6 +48,7 @@ bin/
 
 # 환경 변수 파일 (보안상 형상관리에서 제외)
 .env
+discodeit.env
 .env.local
 .env.*.local
 

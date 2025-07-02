@@ -7,6 +7,12 @@ WORKDIR /app
 # 3. 프로젝트 파일 복사
 COPY . .
 
+# 엔트리포인트 스크립트 복사
+COPY entrypoint.sh .
+
+# 권한 부여 (중요!)
+RUN chmod +x entrypoint.sh
+
 # 4. Gradle Wrapper를 사용하여 애플리케이션 빌드
 RUN ./gradlew bootJar
 
@@ -19,4 +25,4 @@ ENV PROJECT_NAME=discodeit \
     JVM_OPTS=""
 
 # 7. 애플레케이션 실행 명령어 설정
-ENTRYPOINT ["sh","-c","java $JVM_OPTS -jar build/libs/${PROJECT_NAME}-${PROJECT_VERSION}.jar"]
+ENTRYPOINT ["./entrypoint.sh"]
