@@ -53,6 +53,7 @@ public class UserIntegrationTest {
     @Transactional
     @DisplayName("유저 생성 - case : success")
     void createUserSuccess() throws Exception {
+        // Given
         UserCreateRequest request = new UserCreateRequest("김현기","test@test.com","009874");
 
         MockMultipartFile jsonPart = new MockMultipartFile(
@@ -69,6 +70,7 @@ public class UserIntegrationTest {
             "profile image".getBytes()
         );
 
+        // When & Then
         mockMvc.perform(multipart("/api/users")
             .file(jsonPart)
             .file(profile)
@@ -93,6 +95,7 @@ public class UserIntegrationTest {
     @Transactional
     @DisplayName("유저 생성 - case : 잘못된 이메일로 인한 failed")
     void createUserFail() throws Exception {
+        // Given
         UserCreateRequest request = new UserCreateRequest("김현기","test!test.com","009874");
 
         MockMultipartFile jsonPart = new MockMultipartFile(
@@ -102,6 +105,7 @@ public class UserIntegrationTest {
             objectMapper.writeValueAsBytes(request)
         );
 
+        // When & Then
         mockMvc.perform(multipart("/api/users")
             .file(jsonPart)
             .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
@@ -112,6 +116,7 @@ public class UserIntegrationTest {
     @Transactional
     @DisplayName("유저 수정 - case : success")
     void updatedUserSuccess() throws Exception {
+        // Given
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
         UUID userId = user.getId();
@@ -125,6 +130,7 @@ public class UserIntegrationTest {
             objectMapper.writeValueAsBytes(updateRequest)
         );
 
+        // When & Then
         mockMvc.perform(multipart("/api/users/{userId}",userId)
             .file(jsonPart)
             .with(req -> {
@@ -141,7 +147,8 @@ public class UserIntegrationTest {
     @Test
     @Transactional
     @DisplayName("유저 목록 조회 - case : success")
-    void readUserSuccess() throws Exception{
+    void readUserSuccess() throws Exception {
+        // Given
         User user1 = new User("김현기","test@test.com","009874",null);
         User user2 = new User("테스트맨","test2@test.com","555555",null);
 
@@ -151,6 +158,7 @@ public class UserIntegrationTest {
         UserStatus userStatus1 = userStatusRepository.save(new UserStatus(user1, Instant.now()));
         UserStatus userStatus2 = userStatusRepository.save(new UserStatus(user2, Instant.now()));
 
+        // When & Then
         mockMvc.perform(get("/api/users")
             .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -161,7 +169,8 @@ public class UserIntegrationTest {
 
     @Test
     @Transactional
-    void deleteUserSuccess() throws Exception{
+    void deleteUserSuccess() throws Exception {
+        // Given
         UserCreateRequest request = new UserCreateRequest("testMan","test3@test.com","12345");
         MockMultipartFile jsonPart = new MockMultipartFile(
             "userCreateRequest",
@@ -191,9 +200,11 @@ public class UserIntegrationTest {
         UserDto userDto = objectMapper.readValue(response,UserDto.class);
         UUID userId = userDto.id();
 
+        // When
         mockMvc.perform(delete("/api/users/" + userId))
             .andExpect(status().isNoContent());
 
+        // Then
         LoginRequest loginRequest = new LoginRequest("testMan","12345");
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)

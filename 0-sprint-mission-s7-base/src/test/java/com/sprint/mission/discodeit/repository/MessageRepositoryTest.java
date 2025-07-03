@@ -53,6 +53,7 @@ public class MessageRepositoryTest {
     @Test
     @DisplayName("채널의 모든 메시지 조회 - case : success")
     void findAllByChannelIdWithAuthorSuccess() {
+        // Given
         BinaryContent profile = binaryContentRepository.save(
             new BinaryContent("img001.jpg", 1024L, "image/jpg")
         );
@@ -70,11 +71,13 @@ public class MessageRepositoryTest {
 
         Pageable pageable = PageRequest.of(0, 10);
 
+        // When
         Slice<Message> result = messageRepository.findAllByChannelIdWithAuthor(
             channel.getId(),
             Instant.now(),
             pageable);
 
+        // Then
         assertEquals(2, result.getNumberOfElements());
         List<String> contents = result.getContent().stream()
             .map(Message::getContent)
@@ -93,6 +96,7 @@ public class MessageRepositoryTest {
     @Test
     @DisplayName("채널의 모든 메시지 조회 - case : createAt 이전 메시지가 없음으로 인한 failed")
     void findAllByChannelIdWithAuthorFail() {
+        // Given
         User user = userRepository.save(
             new User("김현기","test@test.com","009874", null)
         );
@@ -103,17 +107,20 @@ public class MessageRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10);
         Instant earlier = Instant.now().minusSeconds(180);
 
+        // When
         Slice<Message> result = messageRepository.findAllByChannelIdWithAuthor(
             channel.getId(),
             earlier,
             pageable);
 
+        // Then
         assertTrue(result.isEmpty());
     }
 
     @Test
     @DisplayName("채널의 최근 메시지 시간 조회 - case : success")
     void findLastMessageAyByChannelIdSuccess() {
+        // Given
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testPublicChannel",null));
         User user = userRepository.save(new User("김현기","test@test.com","009874", null));
         userStatusRepository.save(new UserStatus(user, Instant.now()));
@@ -124,9 +131,11 @@ public class MessageRepositoryTest {
         entityManager.flush();
         entityManager.clear();
 
+        // When
         Optional<Instant> lastMessageAt = messageRepository.findLastMessageAtByChannelId(channel.getId());
         assertTrue(lastMessageAt.isPresent());
 
+        // Then
         Message latest = messageRepository.findById(message2.getId()).orElseThrow();
         assertEquals(latest.getCreatedAt(), lastMessageAt.get());
     }
@@ -134,8 +143,13 @@ public class MessageRepositoryTest {
     @Test
     @DisplayName("채널의 최근 메시지 시간 조회 - case : 채널이 존재하지 않음으로써 failed")
     void findLastMessageAtByChannelIdFail() {
+        // Given
         UUID invalidChannelId = UUID.randomUUID();
+
+        // When
         Optional<Instant> lastMessageAt = messageRepository.findLastMessageAtByChannelId(invalidChannelId);
+
+        // Then
         assertTrue(lastMessageAt.isEmpty());
     }
 }

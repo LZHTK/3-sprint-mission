@@ -62,6 +62,7 @@ public class MessageIntegrationTest {
     @Transactional
     @DisplayName("메시지 생성 - case : success")
     void createMessageSuccess() throws Exception {
+        // Given
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
@@ -82,6 +83,7 @@ public class MessageIntegrationTest {
             "attachment image".getBytes()
         );
 
+        // When & Then
         mockMvc.perform(multipart("/api/messages")
             .file(jsonPart)
             .file(attachment)
@@ -99,6 +101,7 @@ public class MessageIntegrationTest {
     @Test
     @DisplayName("메시지 생성 - case : 잘못된 요청으로 인한 failed")
     void createMessageFail() throws Exception {
+        // Given
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         MessageCreateRequest request = new MessageCreateRequest("",channel.getId(),user.getId());
@@ -110,6 +113,7 @@ public class MessageIntegrationTest {
             objectMapper.writeValueAsBytes(request)
         );
 
+        // When & Then
         mockMvc.perform(multipart("/api/messages")
             .file(message))
             .andExpect(status().isBadRequest());
@@ -119,6 +123,7 @@ public class MessageIntegrationTest {
     @Transactional
     @DisplayName("메시지 조회 - case : success")
     void readMessageSuccess() throws Exception {
+        // Given
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
@@ -126,6 +131,7 @@ public class MessageIntegrationTest {
         Message message1 = messageRepository.save(new Message("test",channel,user,null));
         Message message2 = messageRepository.save(new Message("test2",channel,user,null));
 
+        // When & Then
         mockMvc.perform(get("/api/messages")
             .param("channelId",channel.getId().toString())
             .param("page","0")
@@ -142,13 +148,14 @@ public class MessageIntegrationTest {
     @Transactional
     @DisplayName("메시지 수정 - case : success")
     void updateMessageSuccess() throws Exception {
+        // Given
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
-
         Message message = messageRepository.save(new Message("test",channel,user,null));
         MessageUpdateRequest request = new MessageUpdateRequest("Hello Test");
 
+        // When & Then
         mockMvc.perform(patch("/api/messages/{messageId}",message.getId())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -160,12 +167,13 @@ public class MessageIntegrationTest {
     @Transactional
     @DisplayName("메시지 삭제 - case : success")
     void deleteMessageSuccess() throws Exception {
+        // Given
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
-
         Message message = messageRepository.save(new Message("test",channel,user,null));
 
+        // When & Then
         mockMvc.perform(delete("/api/messages/{messageId}",message.getId()))
             .andExpect(status().isNoContent());
     }

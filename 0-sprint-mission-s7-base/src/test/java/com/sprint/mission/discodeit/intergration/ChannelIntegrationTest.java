@@ -58,7 +58,10 @@ public class ChannelIntegrationTest {
     @Transactional
     @DisplayName("Public 채널 생성 - case : success")
     void createPublicChannelSuccess() throws Exception {
+        // Given
         PublicChannelCreateRequest request = new PublicChannelCreateRequest("testPublicChannel","testPublicChannel description");
+
+        // When & Then
         mockMvc.perform(post("/api/channels/public")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -70,8 +73,10 @@ public class ChannelIntegrationTest {
     @Transactional
     @DisplayName("Public 채널 생성 - case : 잘못된 채널 이름으로 인한 failed")
     void createPublicChannelFail() throws Exception {
+        // Given
         PublicChannelCreateRequest request = new PublicChannelCreateRequest("","testPublicChannel description");
 
+        // When & Then
         mockMvc.perform(post("/api/channels/public")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -82,14 +87,15 @@ public class ChannelIntegrationTest {
     @Transactional
     @DisplayName("Private 채널 생성 - case : success")
     void createPrivateChannelSuccess() throws Exception {
+        // Given
         User user1 = userRepository.save(new User("테스트맨1","test1@test.com","1111",null));
         User user2 = userRepository.save(new User("테스트맨2","test2@test.com","2222",null));
         UserStatus userStatus1 = userStatusRepository.save(new UserStatus(user1, Instant.now()));
         UserStatus userStatus2 = userStatusRepository.save(new UserStatus(user2, Instant.now()));
-
         PrivateChannelCreateRequest request = new PrivateChannelCreateRequest(
             List.of(user1.getId(),user2.getId()));
 
+        // When & Then
         mockMvc.perform(post("/api/channels/private")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -103,10 +109,12 @@ public class ChannelIntegrationTest {
     @Transactional
     @DisplayName("Public 채널 수정 - case : success")
     void updatePublicChannelSuccess() throws Exception {
+        // Given
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         UUID channelId = channel.getId();
         PublicChannelUpdateRequest request = new PublicChannelUpdateRequest("testPublicChannel","testPublicChannel description");
 
+        // When & Then
         mockMvc.perform(patch("/api/channels/{channelId}",channelId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -118,9 +126,11 @@ public class ChannelIntegrationTest {
     @Transactional
     @DisplayName("Private 채널 삭제 - case : success")
     void deletePrivateChannelSuccess() throws Exception {
+        // Given
         Channel channel = channelRepository.save(new Channel(ChannelType.PRIVATE,null,null));
         UUID channelId = channel.getId();
 
+        // When & Then
         mockMvc.perform(delete("/api/channels/{channelId}",channelId))
             .andExpect(status().isNoContent());
     }

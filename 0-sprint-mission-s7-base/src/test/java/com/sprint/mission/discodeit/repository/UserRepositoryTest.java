@@ -37,9 +37,13 @@ public class UserRepositoryTest {
     @Test
     @DisplayName("유저 저장 - case : success")
     void saveUserSuccess() {
+        // Given
         User user = new User("김현기","test@test.com","009874", null);
+
+        // When
         User savedUser = userRepository.save(user);
 
+        // Then
         assertNotNull(savedUser.getId());
         assertEquals("김현기", savedUser.getUsername());
         assertEquals("test@test.com", savedUser.getEmail());
@@ -49,9 +53,10 @@ public class UserRepositoryTest {
     @Test
     @DisplayName("유저 저장 - case : 이메일 누락으로 인한 failed")
     void saveUserFail() {
+        // Given
         User user = new User("김현기", null, "009874", null);
 
-
+        // When & Then
         assertThrows(DataIntegrityViolationException.class, () -> {
             userRepository.saveAndFlush(user);
         });
@@ -60,18 +65,19 @@ public class UserRepositoryTest {
     @Test
     @DisplayName("유저 모두 조회 - case : success")
     void findAllWithProfileAndStatusSuccess() {
-
+        // Given
         BinaryContent profile = binaryContentRepository.save(
             new BinaryContent("img001.jpg", (long) "이미지파일".getBytes().length, "image/jpg"));
             User user = new User("김현기","test@test.com","009874", profile);
             userRepository.save(user);
-
             UserStatus userStatus = userStatusRepository.save(
                 new UserStatus(user, Instant.now()));
             userStatusRepository.save(userStatus);
 
+        // When
         List<User> users = userRepository.findAllWithProfileAndStatus();
 
+        // Then
         assertEquals(1, users.size());
         User result = users.get(0);
         assertNotNull(result.getProfile());
@@ -84,14 +90,16 @@ public class UserRepositoryTest {
     @Test
     @DisplayName("유저 모두 조회 - case : 상태는 있으나 프로필이 없는 경우로 인한 failed")
     void findAllWithProfileAndStatusFail() {
+        // Given
         User user = new User("김현기", "test@test.com", "009874", null);
         userRepository.save(user);
-
         UserStatus status = new UserStatus(user, Instant.now());
         userStatusRepository.save(status);
 
+        // When
         List<User> users = userRepository.findAllWithProfileAndStatus();
 
+        // Then
         assertNull(users.get(0).getProfile());
     }
 }

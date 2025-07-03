@@ -60,6 +60,7 @@ public class MessageControllerTest {
     @Test
     @DisplayName("POST /messages - case : success")
     void createMessageSuccess() throws Exception {
+        // Given
         UUID channelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
         UUID messageId = UUID.randomUUID();
@@ -99,6 +100,7 @@ public class MessageControllerTest {
         when(messageService.create(any(MessageCreateRequest.class),any()))
             .thenReturn(response);
 
+        // When & Then
         mockMvc.perform(multipart("/api/messages")
             .file(messagePart)
             .file(attachmentPart)
@@ -112,6 +114,7 @@ public class MessageControllerTest {
     @Test
     @DisplayName("POST /messages - case : 채널을 찾을 수 없음으로 인한 failed")
     void createMessageFail() throws Exception {
+        // Given
         UUID channelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
 
@@ -133,6 +136,7 @@ public class MessageControllerTest {
             messageJson.getBytes(StandardCharsets.UTF_8)
         );
 
+        // When & Then
         mockMvc.perform(multipart("/api/messages")
                 .file(messagePart)
                 .contentType(MediaType.MULTIPART_FORM_DATA))
@@ -144,8 +148,10 @@ public class MessageControllerTest {
     @Test
     @DisplayName("DELETE /messages - case : success")
     void deleteMessageSuccess() throws Exception {
+        // Given
         UUID messageId = UUID.randomUUID();
 
+        // When & Then
         mockMvc.perform(delete("/api/messages/{messageId}", messageId))
             .andExpect(status().isNoContent());
     }
@@ -153,10 +159,11 @@ public class MessageControllerTest {
     @Test
     @DisplayName("DELETE /api/messages/{messagesId} - case : 해당 메시지를 찾을 수 없음으로 인한 failed")
     void deleteMessageNotFound() throws Exception {
+        // Given
         UUID messageId = UUID.randomUUID();
-
         doThrow(new MessageNotFoundException()).when(messageService).delete(messageId);
 
+        // When & Then
         mockMvc.perform(delete("/api/messages/{messageId}",messageId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("메시지를 찾을 수 없습니다."));

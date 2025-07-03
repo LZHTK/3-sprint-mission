@@ -79,6 +79,7 @@ public class BasicMessageServiceTest {
     @Test
     @DisplayName("메시지 생성 - case : success")
     void createMessageSuccess() {
+        // Given
         UUID channelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
         MessageCreateRequest request = new MessageCreateRequest("test", channelId, authorId);
@@ -103,8 +104,11 @@ public class BasicMessageServiceTest {
             null);
 
         given(messageMapper.toDto(any())).willReturn(messageDto);
+
+        // When
         MessageDto result = messageService.create(request, List.of(file));
 
+        // Then
         assertThat(result).isNotNull();
         assertThat(result.content()).isEqualTo("test");
 
@@ -117,12 +121,14 @@ public class BasicMessageServiceTest {
     @Test
     @DisplayName("메시지 생성 - case : 채널이 없는 상황으로 인한 failed")
     void createMessageFail() {
+        // Given
         UUID channelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
         MessageCreateRequest request = new MessageCreateRequest("test", channelId, authorId);
 
         given(channelRepository.findById(channelId)).willReturn(Optional.empty());
 
+        // When & Then
         assertThatThrownBy(() -> messageService.create(request, List.of()))
             .isInstanceOf(ChannelNotFoundException.class);
     }
@@ -130,6 +136,7 @@ public class BasicMessageServiceTest {
     @Test
     @DisplayName("메시지 수정 - case : success")
     void updateMessageSuccess() {
+        // Given
         UUID messageId = UUID.randomUUID();
         MessageUpdateRequest request = new MessageUpdateRequest("newContent");
 
@@ -140,8 +147,10 @@ public class BasicMessageServiceTest {
             new MessageDto(messageId, Instant.now(), null, "newContent", null, null, null)
         );
 
+        // When
         MessageDto result = messageService.update(messageId, request);
 
+        // Then
         assertThat(result).isNotNull();
         assertThat(result.content()).isEqualTo("newContent");
 
@@ -154,11 +163,13 @@ public class BasicMessageServiceTest {
     @Test
     @DisplayName("메시지 수정 - case : 해당 메시지가 없음으로 인한 failed")
     void updateMessageFail() {
+        // Given
         UUID messageId = UUID.randomUUID();
         MessageUpdateRequest request = new MessageUpdateRequest("newContent");
 
         given(messageRepository.findById(messageId)).willReturn(Optional.empty());
 
+        // When & Then
         assertThatThrownBy(() -> messageService.update(messageId, request))
             .isInstanceOf(MessageNotFoundException.class);
     }
@@ -166,6 +177,7 @@ public class BasicMessageServiceTest {
     @Test
     @DisplayName("채널 메시지 목록 조회 - case : success")
     void findAllByChannelIdSuccess() {
+        // Given
         UUID channelId = UUID.randomUUID();
         Instant now = Instant.now();
         Pageable pageable = PageRequest.of(0, 10);
@@ -197,8 +209,10 @@ public class BasicMessageServiceTest {
             )
         );
 
+        // When
         PageResponse<MessageDto> result = messageService.findAllByChannelId(channelId, now, pageable);
 
+        // Then
         assertThat(result.content()).hasSize(1);
         assertThat(result.content().get(0).content()).isEqualTo("test");
 
@@ -207,6 +221,7 @@ public class BasicMessageServiceTest {
     @DisplayName("채널 메시지 목록 조회 - case : 메시지가 없어서 빈 결과인 경우")
     @Test
     void findAllByChannelIdFail() {
+        // Given
         UUID channelId = UUID.randomUUID();
         Pageable pageable = PageRequest.of(0, 5);
         Slice<Message> emptySlice = new SliceImpl<>(List.of(), pageable, false);
@@ -223,8 +238,10 @@ public class BasicMessageServiceTest {
             )
         );
 
+        // When
         PageResponse<MessageDto> result = messageService.findAllByChannelId(channelId, null, pageable);
 
+        // Then
         assertThat(result.content()).isEmpty();
         then(messageRepository).should()
             .findAllByChannelIdWithAuthor(eq(channelId), any(), eq(pageable));
@@ -234,12 +251,14 @@ public class BasicMessageServiceTest {
     @Test
     @DisplayName("메시지 삭제 - case : success")
     void deleteMessageSuccess() {
+        // Given
         UUID messageId = UUID.randomUUID();
-
         given(messageRepository.existsById(messageId)).willReturn(true);
 
+        // When
         assertDoesNotThrow(() -> messageService.delete(messageId));
 
+        // Then
         verify(messageRepository, times(1)).existsById(messageId);
         verify(messageRepository, times(1)).deleteById(messageId);
     }
@@ -247,10 +266,11 @@ public class BasicMessageServiceTest {
     @Test
     @DisplayName("메시지 삭제 - case : 존재하지 않는 메시지 삭제로 인한 failed")
     void deleteMessageFailWithNotFound() {
+        // Given
         UUID messageId = UUID.randomUUID();
-
         given(messageRepository.existsById(messageId)).willReturn(false);
 
+        // When & Then
         assertThatThrownBy(() -> messageService.delete(messageId))
             .isInstanceOf(MessageNotFoundException.class)
             .hasMessageContaining("메시지를 찾을 수 없습니다.");

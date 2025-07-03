@@ -57,10 +57,10 @@ public class ChannelControllerTest {
     @Test
     @DisplayName("POST /channels - case : success")
     void createChannelSuccess() throws Exception {
+        // Given
         UUID channelId = UUID.randomUUID();
         UserDto user1 = new UserDto(UUID.randomUUID(),"김현기","test1@test.com",null, true);
         UserDto user2 = new UserDto(UUID.randomUUID(),"testUser","tset2@test.com",null, true);
-
         when(channelService.create(any(PrivateChannelCreateRequest.class)))
             .thenReturn(
                 new ChannelDto(
@@ -72,6 +72,7 @@ public class ChannelControllerTest {
                     Instant.now())
             );
 
+        // When & Then
         mockMvc.perform(post("/api/channels/private")
             .contentType(MediaType.APPLICATION_JSON)
             .content(String.format("""
@@ -85,12 +86,13 @@ public class ChannelControllerTest {
     @Test
     @DisplayName("POST /channels - case : 존재하지 않는 유저로 인한 failed")
     void createPrivateChannelFail() throws Exception {
+        // Given
         UUID id1 = UUID.randomUUID();
         UUID id2 = UUID.randomUUID();
-
         when(channelService.create(any(PrivateChannelCreateRequest.class)))
             .thenThrow(new UserNotFoundException());
 
+        // When & Then
         mockMvc.perform(post("/api/channels/private")
             .contentType(MediaType.APPLICATION_JSON)
             .content(String.format("""
@@ -104,10 +106,10 @@ public class ChannelControllerTest {
     @Test
     @DisplayName("GET /channels - case : success")
     void findAllChannelsByUserIdSuccess() throws Exception {
+        // Given
         UUID userId = UUID.randomUUID();
         UUID channelId1 = UUID.randomUUID();
         UUID channelId2 = UUID.randomUUID();
-
         ChannelDto publicChannel = new ChannelDto(
             channelId1,
             ChannelType.PUBLIC,
@@ -124,9 +126,9 @@ public class ChannelControllerTest {
             List.of(),
             Instant.now()
         );
-
         when(channelService.findAllByUserId(userId)).thenReturn(List.of(publicChannel,privateChannel));
 
+        // When & Then
         mockMvc.perform(get("/api/channels")
             .param("userId",userId.toString())
             .contentType(MediaType.APPLICATION_JSON))
@@ -139,10 +141,11 @@ public class ChannelControllerTest {
     @DisplayName("GET /channels - case : 유저를 찾을 수 없음으로 인한 failed")
     @Test
     void findAllChannelsByUserIdFail() throws Exception {
+        // Given
         UUID userId = UUID.randomUUID();
-
         when(channelService.findAllByUserId(userId)).thenThrow(new UserNotFoundException());
 
+        // When & Then
         mockMvc.perform(get("/api/channels")
             .param("userId",userId.toString())
             .contentType(MediaType.APPLICATION_JSON))

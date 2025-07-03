@@ -47,8 +47,8 @@ public class UserControllerTest {
     @Test
     @DisplayName("POST /users - case : success")
     void createUserSuccess() throws Exception {
+        // Given
         UUID userId = UUID.randomUUID();
-
         when(userService.create(any(UserCreateRequest.class),any()))
             .thenReturn(new UserDto(userId,"김현기","test@test.com",null,true));
 
@@ -72,6 +72,7 @@ public class UserControllerTest {
             "profile image".getBytes(StandardCharsets.UTF_8)
         );
 
+        // When & Then
         mockMvc.perform(multipart("/api/users")
             .file(userPart)
             .file(profilePart)
@@ -85,6 +86,7 @@ public class UserControllerTest {
     @Test
     @DisplayName("POST /users - case : 잘못된 이메일로 인한 failed")
     void createUserFail() throws Exception {
+        // Given
         MockMultipartFile invalidEmailRequest = new MockMultipartFile(
             "userCreateRequest",
             "",
@@ -98,6 +100,7 @@ public class UserControllerTest {
                 """.getBytes(StandardCharsets.UTF_8)
         );
 
+        // When & Then
         mockMvc.perform(
                 multipart("/api/users")
                     .file(invalidEmailRequest)
@@ -109,10 +112,12 @@ public class UserControllerTest {
     @Test
     @DisplayName("DELETE /users - case : success")
     void deleteUserSuccess() throws Exception {
+        // Given
         UUID userId = UUID.randomUUID();
 
         doNothing().when(userService).delete(userId);
 
+        // When & Then
         mockMvc.perform(delete("/api/users/{userId}",userId))
             .andExpect(status().isNoContent());
     }
@@ -120,11 +125,13 @@ public class UserControllerTest {
     @Test
     @DisplayName("DELETE /users - case : 존재하지 않는 유저로 인한 failed")
     void deleteUserNotFound() throws Exception {
+        // Given
         UUID userId = UUID.randomUUID();
 
         doThrow(new UserNotFoundException())
             .when(userService).delete(userId);
 
+        // When & Then
         mockMvc.perform(delete("/api/users/{userId}",userId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("유저를 찾을 수 없습니다."));

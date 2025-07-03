@@ -51,6 +51,7 @@ public class BasicUserServiceTest {
     @Test
     @DisplayName("User 생성 -  case : success")
     void createUserSuccess() {
+        // Given
         UserCreateRequest userCreateRequest = new UserCreateRequest("KHG", "KHG@test.com", "009874");
         User user = new User(userCreateRequest.username(), userCreateRequest.email(), userCreateRequest.password(), null);
         UserDto userDto = new UserDto(user.getId(), user.getUsername(), user.getEmail(), null, true);
@@ -62,19 +63,25 @@ public class BasicUserServiceTest {
         given(userStatusRepository.save(any(UserStatus.class))).willReturn(userStatus);
         given(userMapper.toDto(any(User.class))).willReturn(userDto);
 
+        // When
         UserDto result = userService.create(userCreateRequest, Optional.empty());
+
+        // Then
         assertThat(result.username()).isEqualTo("KHG");
     }
 
     @Test
     @DisplayName("User 생성 - case : 중복된 이름으로 인한 failed")
     void createUserFail() {
+        // Given
         UserCreateRequest userCreateRequest = new UserCreateRequest("KHG", "KHG@test.com",
             "009874");
         User user = new User(userCreateRequest.username(), userCreateRequest.email(),
             userCreateRequest.password(), null);
 
         given(userRepository.existsByUsername(user.getUsername())).willReturn(true);
+
+        // When & Then
         assertThatThrownBy(() -> userService.create(userCreateRequest, Optional.empty()))
             .isInstanceOf(UserNameAlreadyExistsException.class)
             .hasMessageContaining("중복된 유저 이름입니다.");
@@ -83,6 +90,7 @@ public class BasicUserServiceTest {
     @Test
     @DisplayName("User 조회 - case : success")
     void findUserSuccess() {
+        // Given
         UUID userId = UUID.randomUUID();
         User user = new User("KHG", "KHG@test.com", "009874", null);
         UserDto expectedDto = new UserDto(userId, "KHG", "KHG@test.com", null, true);
@@ -90,8 +98,10 @@ public class BasicUserServiceTest {
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(userMapper.toDto(user)).willReturn(expectedDto);
 
+        // When
         UserDto result = userService.find(userId);
 
+        // Then
         assertThat(result.username()).isEqualTo("KHG");
         assertThat(result.email()).isEqualTo("KHG@test.com");
     }
@@ -99,10 +109,11 @@ public class BasicUserServiceTest {
     @Test
     @DisplayName("User 조회 - case : 존재하지 않는 유저로 인한 failed")
     void findUserFail() {
+        // Given
         UUID userId = UUID.randomUUID();
-
         given(userRepository.findById(userId)).willReturn(Optional.empty());
 
+        // When & Then
         assertThatThrownBy(() -> userService.find(userId))
             .isInstanceOf(UserNotFoundException.class)
             .hasMessageContaining("유저를 찾을 수 없습니다.");
@@ -111,6 +122,7 @@ public class BasicUserServiceTest {
     @Test
     @DisplayName("User 수정 - case : success")
     void updatedUserSuccess() {
+        // Given
         UUID userId = UUID.randomUUID();
         User existingUser = new User("test", "test@test.com","9874",null);
 
@@ -121,8 +133,10 @@ public class BasicUserServiceTest {
         given(userRepository.existsByUsername(userUpdateRequest.newUsername())).willReturn(false);
         given(userMapper.toDto(existingUser)).willReturn(expectedDto);
 
+        // When
         UserDto result = userService.update(userId, userUpdateRequest, Optional.empty());
 
+        // Then
         assertThat(result.username()).isEqualTo(userUpdateRequest.newUsername());
         assertThat(result.email()).isEqualTo(userUpdateRequest.newEmail());
         assertThat(result.online()).isTrue();
@@ -131,6 +145,7 @@ public class BasicUserServiceTest {
     @Test
     @DisplayName("User 수정 - case : 중복된 이메일로 인한 failed")
     void updateUserFail() {
+        // Given
         UUID userID = UUID.randomUUID();
         User existngUser = new User("test", "test@test.com", "9874", null);
 
@@ -139,6 +154,7 @@ public class BasicUserServiceTest {
         given(userRepository.findById(userID)).willReturn(Optional.of(existngUser));
         given(userRepository.existsByEmail(userUpdateRequest.newEmail())).willReturn(true);
 
+        // When & Then
         assertThatThrownBy(() -> userService.update(userID, userUpdateRequest, Optional.empty()))
             .isInstanceOf(UserEmailAlreadyExistsException.class)
             .hasMessageContaining("중복된 이메일입니다.");
@@ -147,23 +163,27 @@ public class BasicUserServiceTest {
     @Test
     @DisplayName("User 삭제 - case : success")
     void deleteUserSuccess() {
+        // Given
         UUID userId = UUID.randomUUID();
 
         given(userRepository.existsById(userId)).willReturn(true);
         willDoNothing().given(userRepository).deleteById(userId);
 
+        // When
         userService.delete(userId);
 
+        // Then
         then(userRepository).should().deleteById(userId);
     }
 
     @Test
     @DisplayName("User 삭제 - case : 존재하지 않는 유저로 인한 failed")
     void deleteUserFail() {
+        // Given
         UUID userId = UUID.randomUUID();
-
         given(userRepository.existsById(userId)).willReturn(false);
 
+        // When & Then
         assertThatThrownBy(() -> userService.delete(userId))
             .isInstanceOf(UserNotFoundException.class)
             .hasMessageContaining("유저를 찾을 수 없습니다.");
