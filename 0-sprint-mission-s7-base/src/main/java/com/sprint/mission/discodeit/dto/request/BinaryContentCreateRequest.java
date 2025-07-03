@@ -12,7 +12,6 @@ public record BinaryContentCreateRequest(
     @Size(min = 1 , max = 100)
     String contentType,
 
-    @NotNull
     @NotEmpty
     byte[] bytes
 ) {

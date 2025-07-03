@@ -5,10 +5,8 @@ import jakarta.validation.constraints.NotNull;
 
 public record LoginRequest(
     @NotBlank
-    @NotNull
     String username,
 
-    @NotNull
     @NotBlank
     String password
 ) {

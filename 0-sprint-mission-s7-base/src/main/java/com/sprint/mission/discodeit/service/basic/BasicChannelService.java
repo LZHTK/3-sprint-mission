@@ -50,9 +50,10 @@ public class BasicChannelService implements ChannelService {
     Channel channel = new Channel(ChannelType.PUBLIC, name, description);
     log.info("[Public 채널 생성 시도] 채널 이름 : {}", name);
 
-    channelRepository.save(channel);
+    // ID가 할당되어있는 저장된 엔티티를 받아서 사용
+    Channel savedChannel = channelRepository.save(channel);
     log.info("[Public 채널 생성 성공] 채널 이름 : {} ", name);
-    return channelMapper.toDto(channel);
+    return channelMapper.toDto(savedChannel);
 
   }
 
@@ -71,7 +72,8 @@ public class BasicChannelService implements ChannelService {
     Channel channel = new Channel(ChannelType.PRIVATE, null, null);
     log.info("[Private 채널 생성 시도] 채널 ID : {}", channel.getId());
 
-    channelRepository.save(channel);
+    // ID가 할당되어있는 저장된 엔티티를 받아서 사용
+    Channel savedChannel = channelRepository.save(channel);
     log.info("[Private 채널 생성 성공] 채널 ID : {} ", channel.getId());
 
     List<ReadStatus> readStatuses = foundUsers.stream()
@@ -82,7 +84,7 @@ public class BasicChannelService implements ChannelService {
     readStatusRepository.saveAll(readStatuses);
     log.info("[읽음 상태 생성 성공] 읽음 상태 갯수 : {} ", readStatuses.size());
 
-    return channelMapper.toDto(channel);
+    return channelMapper.toDto(savedChannel);
 
   }
 

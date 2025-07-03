@@ -54,8 +54,38 @@ discodeit.env
 
 # 로그 파일들 (Spring Boot 기본)
 *.log
+*.log.*
 logs/
+log/
 
+# Logback 설정 관련
+logback-test.xml.bak
+logback-spring.xml.bak
+
+# Log4j 관련
+*.log4j
+*.log4j2
+
+# 일반적인 로그 패턴들
+application*.log
+spring*.log
+error*.log
+debug*.log
+trace*.log
+access*.log
+audit*.log
+
+# 날짜별/시간별 로그 파일들
+*.log.????-??-??
+*.log.????-??-??-??
+*.log.gz
+*.log.zip
+
+# 시스템별 로그 디렉토리
+logs/
+log/
+tmp/logs/
+var/log/
 # Docker 볼륨 데이터
 postgres_data/
 app_storage/

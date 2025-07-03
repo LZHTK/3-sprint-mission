@@ -10,7 +10,6 @@ public record UserCreateRequest(
     @Size(min = 1 , max =50)
     String username,
 
-    @NotNull
     @Email
     @Size(max = 100)
     String email,

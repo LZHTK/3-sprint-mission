@@ -23,12 +23,6 @@ import org.springframework.web.servlet.View;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  private final View error;
-
-  public GlobalExceptionHandler(View error) {
-    this.error = error;
-  }
-
   /* 유저 관련 Error
    * 1.User Not Found Exception */
   @ExceptionHandler(UserNotFoundException.class)
