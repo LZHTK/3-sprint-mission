@@ -83,16 +83,13 @@ public class BasicMessageServiceTest {
         UUID channelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
         MessageCreateRequest request = new MessageCreateRequest("test", channelId, authorId);
-
         Channel channel = new Channel(ChannelType.PUBLIC,"TestChannel","TestChannel Description");
         User author = new User("testUser", "test@test.com","009874",null);
         BinaryContentCreateRequest file = new BinaryContentCreateRequest("file.txt","txt/plain","파일 내용".getBytes());
         BinaryContent savedFile = new BinaryContent(file.fileName(), (long) file.bytes().length, file.contentType());
-
         given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
         given(userRepository.findById(authorId)).willReturn(Optional.of(author));
         given(binaryContentRepository.save(any())).willReturn(savedFile);
-
         UUID messageId = UUID.randomUUID();
         MessageDto messageDto = new MessageDto(
             messageId,
@@ -102,7 +99,6 @@ public class BasicMessageServiceTest {
             null,
             null,
             null);
-
         given(messageMapper.toDto(any())).willReturn(messageDto);
 
         // When
@@ -111,7 +107,6 @@ public class BasicMessageServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.content()).isEqualTo("test");
-
         then(channelRepository).should().findById(channelId);
         then(userRepository).should().findById(authorId);
         then(messageRepository).should().save(any());
@@ -139,9 +134,7 @@ public class BasicMessageServiceTest {
         // Given
         UUID messageId = UUID.randomUUID();
         MessageUpdateRequest request = new MessageUpdateRequest("newContent");
-
         Message message = mock(Message.class);
-
         given(messageRepository.findById(messageId)).willReturn(Optional.of(message));
         given(messageMapper.toDto(message)).willReturn(
             new MessageDto(messageId, Instant.now(), null, "newContent", null, null, null)
@@ -153,7 +146,6 @@ public class BasicMessageServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.content()).isEqualTo("newContent");
-
         verify(messageRepository, times(1)).findById(messageId);
         verify(message, times(1)).update("newContent");
         verify(messageMapper, times(1)).toDto(message);
@@ -166,7 +158,6 @@ public class BasicMessageServiceTest {
         // Given
         UUID messageId = UUID.randomUUID();
         MessageUpdateRequest request = new MessageUpdateRequest("newContent");
-
         given(messageRepository.findById(messageId)).willReturn(Optional.empty());
 
         // When & Then
@@ -181,7 +172,6 @@ public class BasicMessageServiceTest {
         UUID channelId = UUID.randomUUID();
         Instant now = Instant.now();
         Pageable pageable = PageRequest.of(0, 10);
-
         User author = new User("testUserName", "test@test.com", "009874", null);
         Message message = new Message("test", new Channel(ChannelType.PUBLIC, "testChannel","testChannel Description"),author, List.of());
         MessageDto messageDto = new MessageDto(
@@ -193,9 +183,7 @@ public class BasicMessageServiceTest {
             null,
             null
         );
-
         Slice<Message> messageSlice = new SliceImpl<>(List.of(message), pageable, false);
-
         given(messageRepository.findAllByChannelIdWithAuthor(eq(channelId), any(), eq(pageable)))
             .willReturn(messageSlice);
         given(messageMapper.toDto(any(Message.class))).willReturn(messageDto);
@@ -225,7 +213,6 @@ public class BasicMessageServiceTest {
         UUID channelId = UUID.randomUUID();
         Pageable pageable = PageRequest.of(0, 5);
         Slice<Message> emptySlice = new SliceImpl<>(List.of(), pageable, false);
-
         given(messageRepository.findAllByChannelIdWithAuthor(eq(channelId), any(), eq(pageable)))
             .willReturn(emptySlice);
         given(pageResponseMapper.fromSlice(any(), any())).willReturn(

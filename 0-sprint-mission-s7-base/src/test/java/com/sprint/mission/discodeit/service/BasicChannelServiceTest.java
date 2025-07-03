@@ -77,7 +77,6 @@ public class BasicChannelServiceTest {
             request.description(),
             null,
             Instant.now());
-
         given(channelRepository.save(any(Channel.class))).willReturn(channel);
         given(channelMapper.toDto(any(Channel.class))).willReturn(channelDto);
 
@@ -122,7 +121,6 @@ public class BasicChannelServiceTest {
         List<ReadStatus> readStatuses = users.stream()
             .map(user -> new ReadStatus(user, channel, channel.getCreatedAt()))
             .toList();
-
         given(channelRepository.save(any(Channel.class))).willReturn(channel);
         given(channelMapper.toDto(any(Channel.class))).willReturn(channelDto);
         given(userRepository.findAllById(participantsIds)).willReturn(users);
@@ -165,7 +163,6 @@ public class BasicChannelServiceTest {
             "newTestDescription",
             null,
             Instant.now());
-
         given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
         given(channelMapper.toDto(channel)).willReturn(channelDto);
 
@@ -234,19 +231,16 @@ public class BasicChannelServiceTest {
         UUID userId = UUID.randomUUID();
         Channel publicChannel = new Channel(ChannelType.PUBLIC,"testPublicChannel","test1 description");
         Channel privateChannel = new Channel(ChannelType.PRIVATE,null,null);
-
         ReadStatus readStatus = new ReadStatus(
             new User("testUser","test@test.com","009874",null),
             publicChannel,
             Instant.now());
-
         List<ReadStatus> readStatuses = Arrays.asList(readStatus);
         List<UUID> channelIds = Arrays.asList(privateChannel.getId());
         ChannelDto publicChannelDto = new ChannelDto(publicChannel.getId(), ChannelType.PUBLIC, "공개 채널",
             "공개 설명", null, Instant.now());
         ChannelDto privateChannelDto = new ChannelDto(privateChannel.getId(), ChannelType.PRIVATE, null,
             null, null, Instant.now());
-
         given(readStatusRepository.findAllByUserId(userId)).willReturn(readStatuses);
         given(channelRepository.findAllByTypeOrIdIn(ChannelType.PUBLIC,channelIds)).willReturn(List.of(publicChannel,privateChannel));
         given(channelMapper.toDto(publicChannel)).willReturn(publicChannelDto);

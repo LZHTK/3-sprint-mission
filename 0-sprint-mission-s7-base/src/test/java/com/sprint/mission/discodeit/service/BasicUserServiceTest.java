@@ -56,7 +56,6 @@ public class BasicUserServiceTest {
         User user = new User(userCreateRequest.username(), userCreateRequest.email(), userCreateRequest.password(), null);
         UserDto userDto = new UserDto(user.getId(), user.getUsername(), user.getEmail(), null, true);
         UserStatus userStatus = new UserStatus(user, Instant.now());
-
         given(userRepository.existsByUsername(userCreateRequest.username())).willReturn(false);
         given(userRepository.existsByEmail(userCreateRequest.email())).willReturn(false);
         given(userRepository.save(any(User.class))).willReturn(user);
@@ -78,7 +77,6 @@ public class BasicUserServiceTest {
             "009874");
         User user = new User(userCreateRequest.username(), userCreateRequest.email(),
             userCreateRequest.password(), null);
-
         given(userRepository.existsByUsername(user.getUsername())).willReturn(true);
 
         // When & Then
@@ -94,7 +92,6 @@ public class BasicUserServiceTest {
         UUID userId = UUID.randomUUID();
         User user = new User("KHG", "KHG@test.com", "009874", null);
         UserDto expectedDto = new UserDto(userId, "KHG", "KHG@test.com", null, true);
-
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(userMapper.toDto(user)).willReturn(expectedDto);
 
@@ -125,10 +122,8 @@ public class BasicUserServiceTest {
         // Given
         UUID userId = UUID.randomUUID();
         User existingUser = new User("test", "test@test.com","9874",null);
-
         UserUpdateRequest userUpdateRequest = new UserUpdateRequest("KHG","KHG@test.com","009874");
         UserDto expectedDto = new UserDto(userId, userUpdateRequest.newUsername(), userUpdateRequest.newEmail(), null, true);
-
         given(userRepository.findById(userId)).willReturn(Optional.of(existingUser));
         given(userRepository.existsByUsername(userUpdateRequest.newUsername())).willReturn(false);
         given(userMapper.toDto(existingUser)).willReturn(expectedDto);
@@ -148,9 +143,7 @@ public class BasicUserServiceTest {
         // Given
         UUID userID = UUID.randomUUID();
         User existngUser = new User("test", "test@test.com", "9874", null);
-
         UserUpdateRequest userUpdateRequest = new UserUpdateRequest("KHG","test@test.com","009874");
-
         given(userRepository.findById(userID)).willReturn(Optional.of(existngUser));
         given(userRepository.existsByEmail(userUpdateRequest.newEmail())).willReturn(true);
 
@@ -165,7 +158,6 @@ public class BasicUserServiceTest {
     void deleteUserSuccess() {
         // Given
         UUID userId = UUID.randomUUID();
-
         given(userRepository.existsById(userId)).willReturn(true);
         willDoNothing().given(userRepository).deleteById(userId);
 

@@ -66,16 +66,13 @@ public class MessageIntegrationTest {
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
-
         MessageCreateRequest request = new MessageCreateRequest("testMessage",channel.getId(),user.getId());
-
         MockMultipartFile jsonPart = new MockMultipartFile(
             "messageCreateRequest",
             "",
             "application/json",
             objectMapper.writeValueAsBytes(request)
         );
-
         MockMultipartFile attachment = new MockMultipartFile(
             "attachment",
             "attachment.jpg",
@@ -105,7 +102,6 @@ public class MessageIntegrationTest {
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         MessageCreateRequest request = new MessageCreateRequest("",channel.getId(),user.getId());
-
         MockMultipartFile message = new MockMultipartFile(
             "messageCreateRequest",
             "",
@@ -127,7 +123,6 @@ public class MessageIntegrationTest {
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testChannel",null));
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
-
         Message message1 = messageRepository.save(new Message("test",channel,user,null));
         Message message2 = messageRepository.save(new Message("test2",channel,user,null));
 

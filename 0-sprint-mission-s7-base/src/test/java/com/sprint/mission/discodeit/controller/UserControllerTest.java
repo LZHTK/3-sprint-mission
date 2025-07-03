@@ -51,7 +51,6 @@ public class UserControllerTest {
         UUID userId = UUID.randomUUID();
         when(userService.create(any(UserCreateRequest.class),any()))
             .thenReturn(new UserDto(userId,"김현기","test@test.com",null,true));
-
         MockMultipartFile userPart = new MockMultipartFile(
             "userCreateRequest",
             "",
@@ -64,7 +63,6 @@ public class UserControllerTest {
                 }
                 """.getBytes(StandardCharsets.UTF_8)
         );
-
         MockMultipartFile profilePart = new MockMultipartFile(
             "profile",
             "profile.jpg",
@@ -114,7 +112,6 @@ public class UserControllerTest {
     void deleteUserSuccess() throws Exception {
         // Given
         UUID userId = UUID.randomUUID();
-
         doNothing().when(userService).delete(userId);
 
         // When & Then
@@ -127,7 +124,6 @@ public class UserControllerTest {
     void deleteUserNotFound() throws Exception {
         // Given
         UUID userId = UUID.randomUUID();
-
         doThrow(new UserNotFoundException())
             .when(userService).delete(userId);
 

@@ -61,14 +61,11 @@ public class MessageRepositoryTest {
             new User("김현기","test@test.com","009874", profile)
         );
         userStatusRepository.save(new UserStatus(user, Instant.now()));
-
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testPublicChannel",null));
-
         Message message1 = new Message("testMessage1", channel, user, null);
         Message message2 = new Message("testMessage2", channel, user, null);
         messageRepository.saveAll(List.of(message1,message2));
         entityManager.flush();
-
         Pageable pageable = PageRequest.of(0, 10);
 
         // When
@@ -103,7 +100,6 @@ public class MessageRepositoryTest {
         userStatusRepository.save(new UserStatus(user, Instant.now()));
         Channel channel = channelRepository.save(new Channel(ChannelType.PUBLIC,"testPublicChannel",null));
         Message message = new Message("testMessage1", channel, user, null);
-
         Pageable pageable = PageRequest.of(0, 10);
         Instant earlier = Instant.now().minusSeconds(180);
 

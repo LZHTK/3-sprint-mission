@@ -65,7 +65,6 @@ public class MessageControllerTest {
         UUID authorId = UUID.randomUUID();
         UUID messageId = UUID.randomUUID();
         UserDto author = new UserDto(authorId, "김현기", "test@test.com", null, true);
-
         MessageDto response = new MessageDto(
             messageId,
             Instant.now(),
@@ -74,7 +73,6 @@ public class MessageControllerTest {
             channelId,
             author,
             List.of());
-
         String messageJson = String.format("""
         {
           "channelId": "%s",
@@ -82,14 +80,12 @@ public class MessageControllerTest {
           "content": "test"
         }
         """, channelId, authorId);
-
         MockMultipartFile messagePart = new MockMultipartFile(
             "messageCreateRequest",
             "message.json",
             MediaType.APPLICATION_JSON_VALUE,
             messageJson.getBytes(StandardCharsets.UTF_8)
         );
-
         MockMultipartFile attachmentPart = new MockMultipartFile(
             "attachment",
             "attachment.jpg",
@@ -117,10 +113,8 @@ public class MessageControllerTest {
         // Given
         UUID channelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
-
         when(messageService.create(any(MessageCreateRequest.class), anyList()))
             .thenThrow(new ChannelNotFoundException());
-
         String messageJson = String.format("""
         {
           "channelId": "%s",
@@ -128,7 +122,6 @@ public class MessageControllerTest {
           "content": "test"
         }
         """, channelId, authorId);
-
         MockMultipartFile messagePart = new MockMultipartFile(
             "messageCreateRequest",
             "message.json",

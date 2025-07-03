@@ -55,14 +55,12 @@ public class UserIntegrationTest {
     void createUserSuccess() throws Exception {
         // Given
         UserCreateRequest request = new UserCreateRequest("김현기","test@test.com","009874");
-
         MockMultipartFile jsonPart = new MockMultipartFile(
             "userCreateRequest",
             "",
             "application/json",
             objectMapper.writeValueAsBytes(request)
         );
-
         MockMultipartFile profile = new MockMultipartFile(
             "profile",
             "profile.jpg",
@@ -97,7 +95,6 @@ public class UserIntegrationTest {
     void createUserFail() throws Exception {
         // Given
         UserCreateRequest request = new UserCreateRequest("김현기","test!test.com","009874");
-
         MockMultipartFile jsonPart = new MockMultipartFile(
             "userCreateRequest",
             "",
@@ -120,9 +117,7 @@ public class UserIntegrationTest {
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
         UUID userId = user.getId();
-
         UserUpdateRequest updateRequest = new UserUpdateRequest("테스트맨","test2@test.com",null);
-
         MockMultipartFile jsonPart = new MockMultipartFile(
             "userUpdateRequest",
             "",
@@ -151,10 +146,8 @@ public class UserIntegrationTest {
         // Given
         User user1 = new User("김현기","test@test.com","009874",null);
         User user2 = new User("테스트맨","test2@test.com","555555",null);
-
         userRepository.save(user1);
         userRepository.save(user2);
-
         UserStatus userStatus1 = userStatusRepository.save(new UserStatus(user1, Instant.now()));
         UserStatus userStatus2 = userStatusRepository.save(new UserStatus(user2, Instant.now()));
 
@@ -178,14 +171,12 @@ public class UserIntegrationTest {
             "application/json",
             objectMapper.writeValueAsBytes(request)
         );
-
         MockMultipartFile profile = new MockMultipartFile(
             "profile",
             "profile.jpg",
             "image/jpeg",
             "profile image".getBytes()
         );
-
         String response = mockMvc.perform(multipart("/api/users")
             .file(jsonPart)
             .file(profile)
@@ -196,7 +187,6 @@ public class UserIntegrationTest {
             .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
             .andExpect(status().isCreated())
             .andReturn().getResponse().getContentAsString();
-
         UserDto userDto = objectMapper.readValue(response,UserDto.class);
         UUID userId = userDto.id();
 
