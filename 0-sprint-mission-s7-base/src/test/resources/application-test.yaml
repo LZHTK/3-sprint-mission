@@ -36,3 +36,12 @@ discodeit:
     type: local
     local:
       root-path: .discodeit/test-storage
+
+# src/test/resources/application-test.yml
+cloud:
+  aws:
+    credentials:
+      accessKey: dummy
+      secretKey: dummy
+    region:
+      static: ap-northeast-2

@@ -60,10 +60,11 @@ dependencyManagement {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
 }
 
-test {
-    finalizedBy jacocoTestReport
+jacoco {
+    toolVersion = "0.8.8"
 }
 
 jacocoTestReport {
