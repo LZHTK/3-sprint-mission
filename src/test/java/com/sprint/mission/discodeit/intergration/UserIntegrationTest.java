@@ -28,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -68,25 +69,32 @@ public class UserIntegrationTest {
             "profile image".getBytes()
         );
 
-        // When & Then
-        mockMvc.perform(multipart("/api/users")
+        // When - 유저 생성 요청
+        ResultActions createResult = mockMvc.perform(multipart("/api/users")
             .file(jsonPart)
             .file(profile)
             .with(req -> {
                 req.setMethod("POST");
                 return req;
             })
-            .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
-            .andExpect(status().isCreated())
+            .contentType(MediaType.MULTIPART_FORM_DATA_VALUE)
+        );
+
+        // Then - 생성 결과 검증
+        createResult.andExpect(status().isCreated())
             .andExpect(jsonPath("$.username").value("김현기"))
             .andExpect(jsonPath("$.email").value("test@test.com"));
 
-        LoginRequest loginRequest = new LoginRequest("김현기","009874");
+        // When - 로그인 요청
+        LoginRequest loginRequest = new LoginRequest("김현기", "009874");
 
-        mockMvc.perform(post("/api/auth/login")
+        ResultActions loginResult = mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(loginRequest)))
-            .andExpect(status().isOk());
+            .content(objectMapper.writeValueAsString(loginRequest))
+        );
+
+        // Then - 로그인 성공 검증
+        loginResult.andExpect(status().isOk());
     }
 
     @Test
@@ -102,11 +110,18 @@ public class UserIntegrationTest {
             objectMapper.writeValueAsBytes(request)
         );
 
-        // When & Then
-        mockMvc.perform(multipart("/api/users")
+        // When
+        ResultActions result = mockMvc.perform(multipart("/api/users")
             .file(jsonPart)
-            .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
-            .andExpect(status().isBadRequest());
+            .contentType(MediaType.MULTIPART_FORM_DATA_VALUE)
+            .with(req -> {
+                req.setMethod("POST");
+                return req;
+            })
+        );
+
+        // Then
+        result.andExpect(status().isBadRequest());
     }
 
     @Test
@@ -125,16 +140,18 @@ public class UserIntegrationTest {
             objectMapper.writeValueAsBytes(updateRequest)
         );
 
-        // When & Then
-        mockMvc.perform(multipart("/api/users/{userId}",userId)
+        // When
+        ResultActions result = mockMvc.perform(multipart("/api/users/{userId}", userId)
             .file(jsonPart)
             .with(req -> {
                 req.setMethod("PATCH");
                 return req;
             })
             .contentType(MediaType.MULTIPART_FORM_DATA)
-        )
-            .andExpect(status().isOk())
+        );
+
+        // Then
+        result.andExpect(status().isOk())
             .andExpect(jsonPath("$.username").value("테스트맨"))
             .andExpect(jsonPath("$.email").value("test2@test.com"));
     }
@@ -151,10 +168,13 @@ public class UserIntegrationTest {
         UserStatus userStatus1 = userStatusRepository.save(new UserStatus(user1, Instant.now()));
         UserStatus userStatus2 = userStatusRepository.save(new UserStatus(user2, Instant.now()));
 
-        // When & Then
-        mockMvc.perform(get("/api/users")
-            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
+        // When
+        ResultActions result = mockMvc.perform(get("/api/users")
+            .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // Then
+        result.andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$[0].username").value("김현기"))
             .andExpect(jsonPath("$[1].username").value("테스트맨"));

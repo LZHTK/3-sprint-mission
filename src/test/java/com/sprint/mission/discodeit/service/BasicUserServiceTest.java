@@ -23,6 +23,7 @@ import com.sprint.mission.discodeit.service.basic.BasicUserService;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,8 +80,11 @@ public class BasicUserServiceTest {
             userCreateRequest.password(), null);
         given(userRepository.existsByUsername(user.getUsername())).willReturn(true);
 
-        // When & Then
-        assertThatThrownBy(() -> userService.create(userCreateRequest, Optional.empty()))
+        // When
+        ThrowingCallable when = () -> userService.create(userCreateRequest, Optional.empty());
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(UserNameAlreadyExistsException.class)
             .hasMessageContaining("중복된 유저 이름입니다.");
     }
@@ -110,8 +114,11 @@ public class BasicUserServiceTest {
         UUID userId = UUID.randomUUID();
         given(userRepository.findById(userId)).willReturn(Optional.empty());
 
-        // When & Then
-        assertThatThrownBy(() -> userService.find(userId))
+        // When
+        ThrowingCallable when = () -> userService.find(userId);
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(UserNotFoundException.class)
             .hasMessageContaining("유저를 찾을 수 없습니다.");
     }
@@ -147,8 +154,11 @@ public class BasicUserServiceTest {
         given(userRepository.findById(userID)).willReturn(Optional.of(existngUser));
         given(userRepository.existsByEmail(userUpdateRequest.newEmail())).willReturn(true);
 
-        // When & Then
-        assertThatThrownBy(() -> userService.update(userID, userUpdateRequest, Optional.empty()))
+        // When
+        ThrowingCallable when = () -> userService.update(userID, userUpdateRequest, Optional.empty());
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(UserEmailAlreadyExistsException.class)
             .hasMessageContaining("중복된 이메일입니다.");
     }
@@ -175,8 +185,11 @@ public class BasicUserServiceTest {
         UUID userId = UUID.randomUUID();
         given(userRepository.existsById(userId)).willReturn(false);
 
-        // When & Then
-        assertThatThrownBy(() -> userService.delete(userId))
+        // When
+        ThrowingCallable when = () -> userService.delete(userId);
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(UserNotFoundException.class)
             .hasMessageContaining("유저를 찾을 수 없습니다.");
 

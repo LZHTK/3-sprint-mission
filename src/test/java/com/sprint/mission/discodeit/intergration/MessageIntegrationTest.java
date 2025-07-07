@@ -31,6 +31,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -80,16 +81,19 @@ public class MessageIntegrationTest {
             "attachment image".getBytes()
         );
 
-        // When & Then
-        mockMvc.perform(multipart("/api/messages")
+        // When
+        ResultActions result = mockMvc.perform(multipart("/api/messages")
             .file(jsonPart)
             .file(attachment)
             .with(req -> {
-                req.setMethod("POST");
+                req.setMethod("POST"); // multipart 기본은 GET이므로 POST로 명시
                 return req;
             })
-            .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
-            .andExpect(status().isCreated())
+            .contentType(MediaType.MULTIPART_FORM_DATA_VALUE)
+        );
+
+        // Then
+        result.andExpect(status().isCreated())
             .andExpect(jsonPath("$.content").value("testMessage"))
             .andExpect(jsonPath("$.channelId").value(channel.getId().toString()))
             .andExpect(jsonPath("$.author.id").value(user.getId().toString()));
@@ -109,10 +113,17 @@ public class MessageIntegrationTest {
             objectMapper.writeValueAsBytes(request)
         );
 
-        // When & Then
-        mockMvc.perform(multipart("/api/messages")
-            .file(message))
-            .andExpect(status().isBadRequest());
+        // When
+        ResultActions result = mockMvc.perform(multipart("/api/messages")
+            .file(message)
+            .with(req -> {
+                req.setMethod("POST");
+                return req;
+            })
+        );
+
+        // Then
+        result.andExpect(status().isBadRequest());
     }
 
     @Test
@@ -126,14 +137,16 @@ public class MessageIntegrationTest {
         Message message1 = messageRepository.save(new Message("test",channel,user,null));
         Message message2 = messageRepository.save(new Message("test2",channel,user,null));
 
-        // When & Then
-        mockMvc.perform(get("/api/messages")
-            .param("channelId",channel.getId().toString())
-            .param("page","0")
-            .param("size","10")
-            .param("sort","createdAt,desc")
-        )
-            .andExpect(status().isOk())
+        // When
+        ResultActions result = mockMvc.perform(get("/api/messages")
+            .param("channelId", channel.getId().toString())
+            .param("page", "0")
+            .param("size", "10")
+            .param("sort", "createdAt,desc")
+        );
+
+        // Then
+        result.andExpect(status().isOk())
             .andExpect(jsonPath("$.content").isArray())
             .andExpect(jsonPath("$.content.length()").value(2))
             .andExpect(jsonPath("$.content[*].content", Matchers.containsInAnyOrder("test", "test2")));
@@ -150,11 +163,14 @@ public class MessageIntegrationTest {
         Message message = messageRepository.save(new Message("test",channel,user,null));
         MessageUpdateRequest request = new MessageUpdateRequest("Hello Test");
 
-        // When & Then
-        mockMvc.perform(patch("/api/messages/{messageId}",message.getId())
+        // When
+        ResultActions result = mockMvc.perform(patch("/api/messages/{messageId}", message.getId())
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isOk())
+            .content(objectMapper.writeValueAsString(request))
+        );
+
+        // Then
+        result.andExpect(status().isOk())
             .andExpect(jsonPath("$.content").value("Hello Test"));
     }
 
@@ -168,8 +184,10 @@ public class MessageIntegrationTest {
         UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
         Message message = messageRepository.save(new Message("test",channel,user,null));
 
-        // When & Then
-        mockMvc.perform(delete("/api/messages/{messageId}",message.getId()))
-            .andExpect(status().isNoContent());
+        // When
+        ResultActions result = mockMvc.perform(delete("/api/messages/{messageId}", message.getId()));
+
+        // Then
+        result.andExpect(status().isNoContent());
     }
 }

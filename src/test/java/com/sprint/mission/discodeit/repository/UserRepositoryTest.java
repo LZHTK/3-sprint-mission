@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -56,10 +57,11 @@ public class UserRepositoryTest {
         // Given
         User user = new User("김현기", null, "009874", null);
 
-        // When & Then
-        assertThrows(DataIntegrityViolationException.class, () -> {
-            userRepository.saveAndFlush(user);
-        });
+        // When
+        Executable executable = () -> userRepository.saveAndFlush(user);
+
+        // Then
+        assertThrows(DataIntegrityViolationException.class, executable);
     }
 
     @Test

@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -123,8 +124,11 @@ public class BasicMessageServiceTest {
 
         given(channelRepository.findById(channelId)).willReturn(Optional.empty());
 
-        // When & Then
-        assertThatThrownBy(() -> messageService.create(request, List.of()))
+        // When
+        ThrowingCallable when = () -> messageService.create(request, List.of());
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(ChannelNotFoundException.class);
     }
 
@@ -160,8 +164,11 @@ public class BasicMessageServiceTest {
         MessageUpdateRequest request = new MessageUpdateRequest("newContent");
         given(messageRepository.findById(messageId)).willReturn(Optional.empty());
 
-        // When & Then
-        assertThatThrownBy(() -> messageService.update(messageId, request))
+        // When
+        ThrowingCallable when = () -> messageService.update(messageId, request);
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(MessageNotFoundException.class);
     }
 
@@ -257,8 +264,11 @@ public class BasicMessageServiceTest {
         UUID messageId = UUID.randomUUID();
         given(messageRepository.existsById(messageId)).willReturn(false);
 
-        // When & Then
-        assertThatThrownBy(() -> messageService.delete(messageId))
+        // When
+        ThrowingCallable when = () -> messageService.delete(messageId);
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(MessageNotFoundException.class)
             .hasMessageContaining("메시지를 찾을 수 없습니다.");
 

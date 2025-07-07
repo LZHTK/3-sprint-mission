@@ -30,6 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -61,11 +62,14 @@ public class ChannelIntegrationTest {
         // Given
         PublicChannelCreateRequest request = new PublicChannelCreateRequest("testPublicChannel","testPublicChannel description");
 
-        // When & Then
-        mockMvc.perform(post("/api/channels/public")
+        // When
+        ResultActions result = mockMvc.perform(post("/api/channels/public")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
+            .content(objectMapper.writeValueAsString(request))
+        );
+
+        // Then
+        result.andExpect(status().isCreated())
             .andExpect(jsonPath("$.name").value("testPublicChannel"));
     }
 
@@ -76,11 +80,14 @@ public class ChannelIntegrationTest {
         // Given
         PublicChannelCreateRequest request = new PublicChannelCreateRequest("","testPublicChannel description");
 
-        // When & Then
-        mockMvc.perform(post("/api/channels/public")
+        // When
+        ResultActions result = mockMvc.perform(post("/api/channels/public")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
+            .content(objectMapper.writeValueAsString(request))
+        );
+
+        // Then
+        result.andExpect(status().isBadRequest());
     }
 
     @Test
@@ -95,14 +102,17 @@ public class ChannelIntegrationTest {
         PrivateChannelCreateRequest request = new PrivateChannelCreateRequest(
             List.of(user1.getId(),user2.getId()));
 
-        // When & Then
-        mockMvc.perform(post("/api/channels/private")
+        // When
+        ResultActions result = mockMvc.perform(post("/api/channels/private")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.type").value(ChannelType.PRIVATE.name()))
-            .andExpect(jsonPath("$.participants[*].username", Matchers.containsInAnyOrder("테스트맨1","테스트맨2")));
+            .content(objectMapper.writeValueAsString(request))
+        );
 
+        // Then
+        result.andExpect(status().isCreated())
+            .andExpect(jsonPath("$.type").value(ChannelType.PRIVATE.name()))
+            .andExpect(jsonPath("$.participants[*].username",
+                Matchers.containsInAnyOrder("테스트맨1", "테스트맨2")));
     }
 
     @Test
@@ -114,11 +124,14 @@ public class ChannelIntegrationTest {
         UUID channelId = channel.getId();
         PublicChannelUpdateRequest request = new PublicChannelUpdateRequest("testPublicChannel","testPublicChannel description");
 
-        // When & Then
-        mockMvc.perform(patch("/api/channels/{channelId}",channelId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isOk())
+        // When
+        ResultActions result = mockMvc.perform(patch("/api/channels/{channelId}", channelId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request))
+        );
+
+        // Then
+        result.andExpect(status().isOk())
             .andExpect(jsonPath("$.description").value("testPublicChannel description"));
     }
 
@@ -130,8 +143,10 @@ public class ChannelIntegrationTest {
         Channel channel = channelRepository.save(new Channel(ChannelType.PRIVATE,null,null));
         UUID channelId = channel.getId();
 
-        // When & Then
-        mockMvc.perform(delete("/api/channels/{channelId}",channelId))
-            .andExpect(status().isNoContent());
+        // When
+        ResultActions result = mockMvc.perform(delete("/api/channels/{channelId}", channelId));
+
+        // Then
+        result.andExpect(status().isNoContent());
     }
 }
