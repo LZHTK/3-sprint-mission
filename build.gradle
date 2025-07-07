@@ -60,6 +60,7 @@ dependencyManagement {
 
 tasks.named('test') {
     useJUnitPlatform()
+    systemProperty 'spring.profiles.active', 'test'
     finalizedBy(tasks.jacocoTestReport)
 }
 
@@ -67,10 +68,11 @@ jacoco {
     toolVersion = "0.8.10"
 }
 
-jacocoTestReport {
-    dependsOn test
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
     reports {
-        xml.required = true
-        html.required = true
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
     }
 }

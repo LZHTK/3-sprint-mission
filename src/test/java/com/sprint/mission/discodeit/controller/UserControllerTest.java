@@ -11,8 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.sprint.mission.discodeit.dto.data.UserDto;
 import com.sprint.mission.discodeit.dto.request.UserCreateRequest;
-import com.sprint.mission.discodeit.entity.User;
-import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.GlobalExceptionHandler;
 import com.sprint.mission.discodeit.exception.user.UserNotFoundException;
 import com.sprint.mission.discodeit.service.UserService;
@@ -21,7 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -29,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @WebMvcTest(UserController.class)
 @Import(GlobalExceptionHandler.class)
@@ -70,12 +68,15 @@ public class UserControllerTest {
             "profile image".getBytes(StandardCharsets.UTF_8)
         );
 
-        // When & Then
-        mockMvc.perform(multipart("/api/users")
+        // When
+        ResultActions result = mockMvc.perform(multipart("/api/users")
             .file(userPart)
             .file(profilePart)
-            .contentType(MediaType.MULTIPART_FORM_DATA))
-            .andExpect(status().isCreated())
+            .contentType(MediaType.MULTIPART_FORM_DATA)
+        );
+
+        // Then
+        result.andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(userId.toString()))
             .andExpect(jsonPath("$.username").value("김현기"))
             .andExpect(jsonPath("$.email").value("test@test.com"));
@@ -98,13 +99,15 @@ public class UserControllerTest {
                 """.getBytes(StandardCharsets.UTF_8)
         );
 
-        // When & Then
-        mockMvc.perform(
-                multipart("/api/users")
-                    .file(invalidEmailRequest)
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-            )
-            .andExpect(status().isBadRequest());
+        // When
+        ResultActions result = mockMvc.perform(
+            multipart("/api/users")
+                .file(invalidEmailRequest)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+        );
+
+        // Then
+        result.andExpect(status().isBadRequest());
     }
 
     @Test
@@ -114,9 +117,11 @@ public class UserControllerTest {
         UUID userId = UUID.randomUUID();
         doNothing().when(userService).delete(userId);
 
-        // When & Then
-        mockMvc.perform(delete("/api/users/{userId}",userId))
-            .andExpect(status().isNoContent());
+        // When
+        ResultActions result = mockMvc.perform(delete("/api/users/{userId}", userId));
+
+        // Then
+        result.andExpect(status().isNoContent());
     }
 
     @Test
@@ -127,9 +132,11 @@ public class UserControllerTest {
         doThrow(new UserNotFoundException())
             .when(userService).delete(userId);
 
-        // When & Then
-        mockMvc.perform(delete("/api/users/{userId}",userId))
-            .andExpect(status().isNotFound())
+        // When
+        ResultActions result = mockMvc.perform(delete("/api/users/{userId}", userId));
+
+        // Then
+        result.andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("유저를 찾을 수 없습니다."));
     }
 }

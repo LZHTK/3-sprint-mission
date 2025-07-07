@@ -27,8 +27,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
-@WebMvcTest
+@WebMvcTest(ChannelController.class)
 @Import(GlobalExceptionHandler.class)
 @DisplayName("채널 Controller 슬라이스 테스트")
 public class ChannelControllerTest {
@@ -72,14 +73,17 @@ public class ChannelControllerTest {
                     Instant.now())
             );
 
-        // When & Then
-        mockMvc.perform(post("/api/channels/private")
+        // When
+        ResultActions result = mockMvc.perform(post("/api/channels/private")
             .contentType(MediaType.APPLICATION_JSON)
             .content(String.format("""
-                {
-                  "participantIds" : ["%s", "%s"]
-                }""",user1.id().toString(),user2.id().toString())))
-            .andExpect(status().isCreated())
+            {
+              "participantIds" : ["%s", "%s"]
+            }""", user1.id(), user2.id()))
+        );
+
+        // Then
+        result.andExpect(status().isCreated())
             .andExpect(jsonPath("$.type").value(ChannelType.PRIVATE.name()));
     }
 
@@ -92,14 +96,17 @@ public class ChannelControllerTest {
         when(channelService.create(any(PrivateChannelCreateRequest.class)))
             .thenThrow(new UserNotFoundException());
 
-        // When & Then
-        mockMvc.perform(post("/api/channels/private")
+        // When
+        ResultActions result = mockMvc.perform(post("/api/channels/private")
             .contentType(MediaType.APPLICATION_JSON)
             .content(String.format("""
-                {
-                  "participantIds" : ["%s", "%s"]
-                }""", id1, id2)))
-            .andExpect(status().isNotFound())
+            {
+              "participantIds" : ["%s", "%s"]
+            }""", id1, id2))
+        );
+
+        // Then
+        result.andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("유저를 찾을 수 없습니다."));
     }
 
@@ -128,11 +135,14 @@ public class ChannelControllerTest {
         );
         when(channelService.findAllByUserId(userId)).thenReturn(List.of(publicChannel,privateChannel));
 
-        // When & Then
-        mockMvc.perform(get("/api/channels")
-            .param("userId",userId.toString())
-            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
+        // When
+        ResultActions result = mockMvc.perform(get("/api/channels")
+            .param("userId", userId.toString())
+            .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // Then
+        result.andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$[0].type").value("PUBLIC"))
             .andExpect(jsonPath("$[1].type").value("PRIVATE"));
@@ -145,11 +155,14 @@ public class ChannelControllerTest {
         UUID userId = UUID.randomUUID();
         when(channelService.findAllByUserId(userId)).thenThrow(new UserNotFoundException());
 
-        // When & Then
-        mockMvc.perform(get("/api/channels")
-            .param("userId",userId.toString())
-            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isNotFound())
+        // When
+        ResultActions result = mockMvc.perform(get("/api/channels")
+            .param("userId", userId.toString())
+            .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // Then
+        result.andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("유저를 찾을 수 없습니다."));
     }
 }

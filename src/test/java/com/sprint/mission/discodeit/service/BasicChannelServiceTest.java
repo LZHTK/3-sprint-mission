@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -94,8 +95,11 @@ public class BasicChannelServiceTest {
         PublicChannelCreateRequest request = new PublicChannelCreateRequest("test", "테스트 채널!");
         given(channelRepository.existsChannelByName(request.name())).willReturn(true);
 
-        // When & Then
-        assertThatThrownBy(() -> channelService.create(request))
+        // When
+        ThrowingCallable throwingCallable = () -> channelService.create(request);
+
+        // Then
+        assertThatThrownBy(throwingCallable)
             .isInstanceOf(ChannelNameAlreadyExistsException.class)
             .hasMessageContaining("중복된 채널 이름입니다.");
     }
@@ -144,8 +148,11 @@ public class BasicChannelServiceTest {
             new User("user1","test@test.com","password",null)
         ));
 
-        // When & Then
-        assertThatThrownBy(() -> channelService.create(new PrivateChannelCreateRequest(participantsIds)))
+        // When
+        ThrowingCallable when = () -> channelService.create(new PrivateChannelCreateRequest(participantsIds));
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(UserNotFoundException.class);
     }
 
@@ -214,8 +221,11 @@ public class BasicChannelServiceTest {
         UUID channelId = UUID.randomUUID();
         given(channelRepository.existsById(channelId)).willReturn(false);
 
-        // When & Then
-        assertThatThrownBy(() -> channelService.delete(channelId))
+        // When
+        ThrowingCallable when = () -> channelService.delete(channelId);
+
+        // Then
+        assertThatThrownBy(when)
             .isInstanceOf(ChannelNotFoundException.class);
 
         then(channelRepository).should().existsById(channelId);
