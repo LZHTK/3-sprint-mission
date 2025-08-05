@@ -2,15 +2,20 @@ package com.sprint.mission.discodeit.controller;
 
 import com.sprint.mission.discodeit.controller.api.AuthApi;
 import com.sprint.mission.discodeit.dto.data.UserDto;
+import com.sprint.mission.discodeit.dto.request.UserRoleUpdateRequest;
 import com.sprint.mission.discodeit.security.DiscodeitUserDetails;
 import com.sprint.mission.discodeit.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -64,5 +69,26 @@ public class AuthController implements AuthApi {
     return ResponseEntity
         .status(HttpStatus.OK)
         .body(currentUser);
+  }
+
+  /**
+   * 사용자 권한 업데이트 API
+   * ADMIN 권한을 가진 사용자만 접근 가능*/
+  @PutMapping("/role")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<UserDto> updateUserRole(
+      @RequestBody @Valid UserRoleUpdateRequest request,
+      @AuthenticationPrincipal DiscodeitUserDetails userDetails) {
+
+    log.debug("사용자 권한 업데이트 요청 : userId = {}, newRole = {}, requestBy = {} " ,
+              request.userId(), request.newRole(), userDetails.getUsername());
+
+    UserDto updatedUser = authService.updateUserRole(request.userId(), request.newRole());
+
+    log.debug("사용자 권한 업데이트 완료 : userID = {}, newRole = {} ",
+              updatedUser.id(), updatedUser.role());
+    return ResponseEntity
+        .status(HttpStatus.OK)
+        .body(updatedUser);
   }
 }
