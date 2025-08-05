@@ -57,6 +57,7 @@ public class BasicUserStatusService implements UserStatusService {
     return userStatusMapper.toDto(userStatus);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public UserStatusDto find(UUID userStatusId) {
     log.info("[유저 상태 정보 조회 시도] 유저 상태 정보 ID : {}", userStatusId);
@@ -69,6 +70,7 @@ public class BasicUserStatusService implements UserStatusService {
         });
   }
 
+  @Transactional(readOnly = true)
   @Override
   public List<UserStatusDto> findAll() {
     log.info("[모든 유저 상태 정보 조회 시도]");

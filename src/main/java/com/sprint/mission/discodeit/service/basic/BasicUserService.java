@@ -81,6 +81,7 @@ public class BasicUserService implements UserService {
     return userMapper.toDto(user);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public UserDto find(UUID userId) {
      log.info("[유저 조회 시도] 유저 ID : {}", userId);
@@ -93,6 +94,7 @@ public class BasicUserService implements UserService {
         });
   }
 
+  @Transactional(readOnly = true)
   @Override
   public List<UserDto> findAll() {
       log.info("[모든 유저 조회 시도]");
