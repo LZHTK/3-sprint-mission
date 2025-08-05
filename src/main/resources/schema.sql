@@ -128,3 +128,5 @@ ALTER TABLE read_statuses
 
 ALTER TABLE users
     ADD COLUMN role varchar(20) NOT NULL DEFAULT 'USER';
+
+SELECT username, password FROM users WHERE username = 'admin';

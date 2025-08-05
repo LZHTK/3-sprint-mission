@@ -6,7 +6,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,6 +23,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
@@ -69,14 +73,45 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 정적 리소스 허용
                 .requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**").permitAll()
-                // 인증 관련 API 허용
-                .requestMatchers("/api/auth/**", "/api/users").permitAll()
-                // API 요청은 인증 필요
-                .requestMatchers("/api/**").authenticated()
-                // 나머지 정적 리소스는 허용 (CSS, JS, 이미지 등)
-                .anyRequest().permitAll()
+                // 인증하지 않을 요청들
+                .requestMatchers("/api/auth/csrf-token").permitAll()  // CSRF 토큰 발급
+                .requestMatchers("/api/users").permitAll()          // 회원가입
+                .requestMatchers("/api/auth/login").permitAll()     // 로그인
+                .requestMatchers("/api/auth/logout").permitAll()    // 로그아웃
+                // API가 아닌 요청 (Swagger, Actuator 등)
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
+                // 모든 요청을 인증하도록 설정
+                .anyRequest().authenticated()
+            )
+            // 예외 처리 설정
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"error\":\"인증이 필요합니다.\",\"status\":401}");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"error\":\"접근 권한이 없습니다.\",\"status\":403}");
+                })
             )
             .build();
+    }
+
+    /**
+     * 권한 계층 구조 정의
+     * ADMIN > CHANNEL_MANAGER > USER
+     * */
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        roleHierarchy.setHierarchy(
+            "ROLE_ADMIN > ROLE_CHANNEL_MANAGER\n" +
+                "ROLE_CHANNEL_MANAGER > ROLE_USER"
+        );
+        return roleHierarchy;
     }
 
     /**
@@ -85,4 +120,16 @@ public class SecurityConfig {
      * */
     @Bean
     public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+
+    /**
+     * 메서드 보안에서 권한 계층 구조를 사용하도록 설정
+     */
+    @Bean
+    static MethodSecurityExpressionHandler methodSecurityExpressionHandler(
+        RoleHierarchy roleHierarchy
+    ) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        handler.setRoleHierarchy(roleHierarchy);
+        return handler;
+    }
 }

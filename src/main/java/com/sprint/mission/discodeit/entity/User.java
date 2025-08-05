@@ -71,4 +71,11 @@ public class User extends BaseUpdatableEntity {
   public void updateRole(Role newRole) {
       this.role = newRole;
   }
+
+  public void setStatus(UserStatus status) {
+    this.status = status;
+    if (status != null) {
+      status.setUser(this);  // 양방향 관계 설정
+    }
+  }
 }
