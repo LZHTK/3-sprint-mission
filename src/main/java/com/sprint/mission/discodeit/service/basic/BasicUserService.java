@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ public class BasicUserService implements UserService {
   private final UserMapper userMapper;
   private final BinaryContentRepository binaryContentRepository;
   private final BinaryContentStorage binaryContentStorage;
+  private final PasswordEncoder passwordEncoder;
 
   @Transactional
   @Override
@@ -66,9 +68,13 @@ public class BasicUserService implements UserService {
         })
         .orElse(null);
     log.info("[유저 등록] 유저 프로필이 생성되었습니다.");
-    String password = userCreateRequest.password();
 
-    User user = new User(username, email, password, nullableProfile);
+    // 비밀번호 암호화 로직
+    String rawPassword = userCreateRequest.password();
+    String encodedpassword = passwordEncoder.encode(rawPassword);
+    log.info("[유저 등록] 비밀번호가 암호화되었습니다.");
+
+    User user = new User(username, email, encodedpassword, nullableProfile);
     log.info("[유저 등록] 유저 ID: {}", user.getId());
 
     Instant now = Instant.now();
@@ -143,8 +149,15 @@ public class BasicUserService implements UserService {
         .orElse(null);
       log.info("[유저 수정] 유저 프로필이 수정되었습니다. 유저 ID : {}", userId);
 
+    // 비밀번호 암호화 로직 추가
     String newPassword = userUpdateRequest.newPassword();
-    user.update(newUsername, newEmail, newPassword, nullableProfile);
+    String encodedNewPassword = null;
+    if (newPassword != null && !newPassword.isEmpty()) {
+        encodedNewPassword = passwordEncoder.encode(newPassword);
+        log.info("[유저 수정] 비밀번호가 암호화되었습니다. 유저 ID : {}", userId);
+    }
+
+    user.update(newUsername, newEmail, encodedNewPassword, nullableProfile);
       log.info("[유저 수정 성공] 유저 ID : {}", userId);
 
     return userMapper.toDto(user);
