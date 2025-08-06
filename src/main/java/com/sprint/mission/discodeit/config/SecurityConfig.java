@@ -1,7 +1,9 @@
 package com.sprint.mission.discodeit.config;
 
+import com.sprint.mission.discodeit.security.DiscodeitUserDetailsService;
 import com.sprint.mission.discodeit.security.LoginFailureHandler;
 import com.sprint.mission.discodeit.security.LoginSuccessHandler;
+import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,10 +18,13 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
@@ -32,6 +37,8 @@ public class SecurityConfig {
 
     private final LoginSuccessHandler loginSuccessHandler;
     private final LoginFailureHandler loginFailureHandler;
+    private final DiscodeitUserDetailsService discodeitUserDetailsService;
+    private final DataSource dataSource;
 
 
     /**
@@ -52,7 +59,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, SessionRegistry sessionRegistry) throws Exception{
+    public SecurityFilterChain filterChain(HttpSecurity http, SessionRegistry sessionRegistry,
+        UserDetailsService userDetailsService) throws Exception{
         return http
             // CSRF 설정 - 쿠키 기반 CSRF 토큰 사용
             .csrf(csrf -> csrf
@@ -66,6 +74,15 @@ public class SecurityConfig {
                 .loginProcessingUrl("/api/auth/login")
                 .successHandler(loginSuccessHandler)
                 .failureHandler(loginFailureHandler)
+            )
+            .rememberMe(rememberMe -> rememberMe
+                .key("discodeit-remember-me-key") // RememberMe 토큰 생성에 사용할 고유 키
+                .tokenRepository(persistentTokenRepository()) // 토큰 저장소 설정
+                .userDetailsService(userDetailsService) // 사용자 정보를 조회할 서비스
+                .tokenValiditySeconds(60 * 60 * 24) // 토큰 유효시간
+                .rememberMeParameter("remember-me")
+                .rememberMeCookieName("REMEMBER_ME")
+                .alwaysRemember(false)
             )
             .logout(logout -> logout
                 .logoutUrl("/api/auth/logout")
@@ -112,11 +129,20 @@ public class SecurityConfig {
     }
 
     /**
+     * RememberMe 토큰을 데이터베이스에 저장하기 위한 Repository 설정
+     * */
+    @Bean
+    public PersistentTokenRepository persistentTokenRepository() {
+        JdbcTokenRepositoryImpl tokenRepository = new JdbcTokenRepositoryImpl();
+        tokenRepository.setDataSource(dataSource);
+        return tokenRepository;
+    }
+
+    /**
      * SessionRegistry Bean - 세션 관리를 위해 추가
      * */
     @Bean
     public SessionRegistry sessionRegistry() { return new SessionRegistryImpl(); }
-
 
     /**
      * HttpSessionEvenPublisher Bean - 세션 이벤트 처리를 위해 추가
@@ -158,6 +184,4 @@ public class SecurityConfig {
         handler.setRoleHierarchy(roleHierarchy);
         return handler;
     }
-
-
 }
