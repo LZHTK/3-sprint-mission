@@ -2,7 +2,6 @@ package com.sprint.mission.discodeit.config;
 
 import com.sprint.mission.discodeit.entity.Role;
 import com.sprint.mission.discodeit.entity.User;
-import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
@@ -32,35 +31,18 @@ public class AdminInitializer implements ApplicationRunner {
         if (!adminExists) {
             log.info("ADMIN 계정이 존재하지 않습니다. 초기 ADMIN 계정을 생성합니다.");
 
-            // 1. User 먼저 생성
+            // ADMIN 사용자 생성 및 저장
             User adminUser = new User(
                 "admin",
                 "admin@discodeit.com",
-                passwordEncoder.encode("admin123!"),
+                passwordEncoder.encode("admin!"),
                 null
             );
             adminUser.updateRole(Role.ADMIN);
 
-            // 2. User를 먼저 저장 (ID 생성을 위해)
             User savedUser = userRepository.save(adminUser);
-            log.info("Admin 사용자 저장 완료: ID = {}", savedUser.getId());
-
-            // 3. UserStatus 생성 및 양방향 관계 설정
-            UserStatus userStatus = new UserStatus(savedUser, Instant.now());
-            savedUser.setStatus(userStatus);
-
-            // 4. 다시 저장하여 UserStatus 영속화
-            userRepository.save(savedUser);
-
-            log.info("초기 ADMIN 계정과 UserStatus 생성 완료 (username: admin)");
-
-            // 5. 검증
-            User verifyUser = userRepository.findByUsername("admin").orElse(null);
-            if (verifyUser != null && verifyUser.getStatus() != null) {
-                log.info("✅ ADMIN 계정 UserStatus 생성 검증 성공");
-            } else {
-                log.error("❌ ADMIN 계정 UserStatus 생성 검증 실패");
-            }
+            log.info("초기 ADMIN 계정 생성 완료 : ID = {}, username = {}",
+                    savedUser.getId(), savedUser.getUsername());
         }
     }
 }

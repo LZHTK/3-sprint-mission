@@ -10,8 +10,6 @@ import com.sprint.mission.discodeit.exception.readstatus.ReadStatusNotFoundExcep
 import com.sprint.mission.discodeit.exception.user.UserEmailAlreadyExistsException;
 import com.sprint.mission.discodeit.exception.user.UserNameAlreadyExistsException;
 import com.sprint.mission.discodeit.exception.user.UserNotFoundException;
-import com.sprint.mission.discodeit.exception.userstatus.UserStatusAlreadyExistsException;
-import com.sprint.mission.discodeit.exception.userstatus.UserStatusNotFoundException;
 import java.nio.file.AccessDeniedException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
@@ -149,27 +147,27 @@ public class GlobalExceptionHandler {
         .body(errorResponse);
   }
 
-  /** 유저 상태 관련 Error
-   * 11. UserStatus Not Found Exception
-   * */
-  @ExceptionHandler(UserStatusNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleException(UserStatusNotFoundException e) {
-    ErrorResponse errorResponse = new ErrorResponse(HttpStatus.NOT_FOUND, e.getErrorCode());
-    return ResponseEntity
-        .status(HttpStatus.NOT_FOUND)
-        .body(errorResponse);
-  }
-
-  /** 유저 상태 관련 Error
-   * 12. UserStatus Duplicate Exception
-   * */
-  @ExceptionHandler(UserStatusAlreadyExistsException.class)
-  public ResponseEntity<ErrorResponse> handleException(UserStatusAlreadyExistsException e) {
-    ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST, e.getErrorCode());
-    return ResponseEntity
-        .status(HttpStatus.BAD_REQUEST)
-        .body(errorResponse);
-  }
+//  /** 유저 상태 관련 Error
+//   * 11. UserStatus Not Found Exception
+//   * */
+//  @ExceptionHandler(UserStatusNotFoundException.class)
+//  public ResponseEntity<ErrorResponse> handleException(UserStatusNotFoundException e) {
+//    ErrorResponse errorResponse = new ErrorResponse(HttpStatus.NOT_FOUND, e.getErrorCode());
+//    return ResponseEntity
+//        .status(HttpStatus.NOT_FOUND)
+//        .body(errorResponse);
+//  }
+//
+//  /** 유저 상태 관련 Error
+//   * 12. UserStatus Duplicate Exception
+//   * */
+//  @ExceptionHandler(UserStatusAlreadyExistsException.class)
+//  public ResponseEntity<ErrorResponse> handleException(UserStatusAlreadyExistsException e) {
+//    ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST, e.getErrorCode());
+//    return ResponseEntity
+//        .status(HttpStatus.BAD_REQUEST)
+//        .body(errorResponse);
+//  }
 
   /**
    * 13. 유효성 검사 실패 시 발생 에러

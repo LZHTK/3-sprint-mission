@@ -13,10 +13,7 @@ import com.sprint.mission.discodeit.dto.data.UserDto;
 import com.sprint.mission.discodeit.dto.request.UserCreateRequest;
 import com.sprint.mission.discodeit.dto.request.UserUpdateRequest;
 import com.sprint.mission.discodeit.entity.User;
-import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.repository.UserRepository;
-import com.sprint.mission.discodeit.repository.UserStatusRepository;
-import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,9 +42,6 @@ public class UserIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    private UserStatusRepository userStatusRepository;
 
     @Test
     @Transactional
@@ -129,7 +123,6 @@ public class UserIntegrationTest {
     void updatedUserSuccess() throws Exception {
         // Given
         User user = userRepository.save(new User("김현기","test@test.com","009874",null));
-        UserStatus userStatus = userStatusRepository.save(new UserStatus(user, Instant.now()));
         UUID userId = user.getId();
         UserUpdateRequest updateRequest = new UserUpdateRequest("테스트맨","test2@test.com",null);
         MockMultipartFile jsonPart = new MockMultipartFile(
@@ -164,8 +157,6 @@ public class UserIntegrationTest {
         User user2 = new User("테스트맨","test2@test.com","555555",null);
         userRepository.save(user1);
         userRepository.save(user2);
-        UserStatus userStatus1 = userStatusRepository.save(new UserStatus(user1, Instant.now()));
-        UserStatus userStatus2 = userStatusRepository.save(new UserStatus(user2, Instant.now()));
 
         // When
         ResultActions result = mockMvc.perform(get("/api/users")

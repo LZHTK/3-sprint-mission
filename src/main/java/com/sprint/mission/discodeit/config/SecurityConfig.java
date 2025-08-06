@@ -14,12 +14,15 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 @Configuration
 @RequiredArgsConstructor
@@ -49,7 +52,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+    public SecurityFilterChain filterChain(HttpSecurity http, SessionRegistry sessionRegistry) throws Exception{
         return http
             // CSRF 설정 - 쿠키 기반 CSRF 토큰 사용
             .csrf(csrf -> csrf
@@ -69,6 +72,14 @@ public class SecurityConfig {
                 .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT))
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
+            )
+            .sessionManagement(management -> management
+                .sessionConcurrency(concurrency -> concurrency
+                    .maximumSessions(1) // 동일 계정으로 최대 1개의 세션만 허용
+                    .maxSessionsPreventsLogin(true) // 새로운 로그인이 기존 세션을 만료시킨다.
+                    .sessionRegistry(sessionRegistry)
+                    .expiredUrl("/login?expired=true") // 세션 만료 시 리다이렉트할 URL
+                )
             )
             .authorizeHttpRequests(auth -> auth
                 // 정적 리소스 허용
@@ -98,6 +109,21 @@ public class SecurityConfig {
                 })
             )
             .build();
+    }
+
+    /**
+     * SessionRegistry Bean - 세션 관리를 위해 추가
+     * */
+    @Bean
+    public SessionRegistry sessionRegistry() { return new SessionRegistryImpl(); }
+
+
+    /**
+     * HttpSessionEvenPublisher Bean - 세션 이벤트 처리를 위해 추가
+     * */
+    @Bean
+    public HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
     }
 
     /**
@@ -132,4 +158,6 @@ public class SecurityConfig {
         handler.setRoleHierarchy(roleHierarchy);
         return handler;
     }
+
+
 }
