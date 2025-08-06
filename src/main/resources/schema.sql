@@ -130,3 +130,11 @@ ALTER TABLE users
     ADD COLUMN role varchar(20) NOT NULL DEFAULT 'USER';
 
 SELECT username, password FROM users WHERE username = 'admin';
+
+SELECT id, username, email, password, role, created_at
+FROM users
+WHERE username = 'admin';
+
+SELECT user_id, created_at, last_active_at
+FROM user_statuses
+WHERE user_id = (SELECT id FROM users WHERE username = 'admin');

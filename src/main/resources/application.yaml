@@ -34,7 +34,7 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
     com.sprint.mission.discodeit: info
-    org.springframework.security: trace
+    org.springframework.security: DEBUG
     com.sprint.mission.discodeit.security: DEBUG
     org.springframework.security.authentication: DEBUG
 

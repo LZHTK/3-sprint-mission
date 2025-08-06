@@ -36,7 +36,7 @@ public class AuthController implements AuthApi {
    * @param csrfToken Spring Security가 자동 주입하는 CSRF 토큰
    * @return CSRF 토큰 정보
    * </p>*/
-  @GetMapping("csrf-token")
+  @GetMapping("/csrf-token")
   public ResponseEntity<Void> getCsrfToken(CsrfToken csrfToken) {
     String tokenValue = csrfToken.getToken();
     log.debug("CSRF 토큰 요청 : {}", tokenValue);
