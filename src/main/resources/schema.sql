@@ -127,3 +127,6 @@ SELECT * FROM persistent_logins;
 
 DELETE FROM users
 WHERE username IN ('testman', 'LCLC', '김현기', '소라고동');
+
+DELETE FROM channels
+WHERE name IN ('5팀', '3팀33');
