@@ -118,6 +118,13 @@ ALTER TABLE read_statuses
             REFERENCES channels (id)
             ON DELETE CASCADE;
 
+-- persistent_logins 테이블에 외래키 제약조건 추가
+ALTER TABLE persistent_logins
+    ADD CONSTRAINT fk_persistent_logins_username
+        FOREIGN KEY (username) REFERENCES users(username)
+            ON DELETE CASCADE;
+
+
 ALTER TABLE users
     ADD COLUMN role varchar(20) NOT NULL DEFAULT 'USER';
 
@@ -126,7 +133,14 @@ SELECT username, password FROM users WHERE username = 'admin';
 SELECT * FROM persistent_logins;
 
 DELETE FROM users
-WHERE username IN ('testman', 'LCLC', '김현기', '소라고동');
+WHERE username IN ('김현기');
 
 DELETE FROM channels
 WHERE name IN ('5팀', '3팀33');
+
+SELECT * FROM persistent_logins;
+
+DELETE FROM persistent_logins
+WHERE username NOT IN (SELECT username FROM users);
+
+TRUNCATE TABLE persistent_logins;

@@ -3,8 +3,11 @@ package com.sprint.mission.discodeit.config;
 import com.sprint.mission.discodeit.security.DiscodeitUserDetailsService;
 import com.sprint.mission.discodeit.security.LoginFailureHandler;
 import com.sprint.mission.discodeit.security.LoginSuccessHandler;
+import java.util.List;
+import java.util.stream.IntStream;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -22,6 +25,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
@@ -78,7 +82,7 @@ public class SecurityConfig {
             .rememberMe(rememberMe -> rememberMe
                 .key("discodeit-remember-me-key") // RememberMe 토큰 생성에 사용할 고유 키
                 .tokenRepository(persistentTokenRepository()) // 토큰 저장소 설정
-                .userDetailsService(userDetailsService) // 사용자 정보를 조회할 서비스
+                .userDetailsService(discodeitUserDetailsService) // 사용자 정보를 조회할 서비스
                 .tokenValiditySeconds(60 * 60 * 24) // 토큰 유효시간
                 .rememberMeParameter("remember-me")
                 .rememberMeCookieName("REMEMBER_ME")
@@ -114,11 +118,7 @@ public class SecurityConfig {
             )
             // 예외 처리 설정
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                    response.setContentType("application/json;charset=UTF-8");
-                    response.getWriter().write("{\"error\":\"인증이 필요합니다.\",\"status\":401}");
-                })
+                .authenticationEntryPoint(new Http403ForbiddenEntryPoint())
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                     response.setStatus(HttpStatus.FORBIDDEN.value());
                     response.setContentType("application/json;charset=UTF-8");
@@ -126,6 +126,25 @@ public class SecurityConfig {
                 })
             )
             .build();
+    }
+
+    /**
+     * 필터 목록 디버깅을 위한 빈
+     * */
+    @Bean
+    public CommandLineRunner debugFilterChain(SecurityFilterChain filterChain) {
+
+        return args -> {
+            int filterSize = filterChain.getFilters().size();
+
+            List<String> filterNames = IntStream.range(0, filterSize)
+                .mapToObj(idx -> String.format("\t[%s/%s] %s", idx + 1, filterSize,
+                    filterChain.getFilters().get(idx).getClass()))
+                .toList();
+
+            System.out.println("현재 적용된 필터 체인 목록:");
+            filterNames.forEach(System.out::println);
+        };
     }
 
     /**
@@ -177,7 +196,7 @@ public class SecurityConfig {
      * 메서드 보안에서 권한 계층 구조를 사용하도록 설정
      */
     @Bean
-    static MethodSecurityExpressionHandler methodSecurityExpressionHandler(
+    public MethodSecurityExpressionHandler methodSecurityExpressionHandler(
         RoleHierarchy roleHierarchy
     ) {
         DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();

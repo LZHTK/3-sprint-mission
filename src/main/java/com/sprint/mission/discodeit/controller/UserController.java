@@ -53,7 +53,7 @@ public class UserController implements UserApi {
       path = "{userId}",
       consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}
   )
-  @PreAuthorize("@resourceSecurity.isOwner(#userId, authentication) or hasRole('ADMIN')")
+  @PreAuthorize("@resourceSecurity.isOwner(#userId, authentication) or hasAuthority('ROLE_ADMIN')")
   @Override
   public ResponseEntity<UserDto> update(
       @PathVariable("userId") UUID userId,
@@ -69,7 +69,7 @@ public class UserController implements UserApi {
   }
 
   @DeleteMapping(path = "{userId}")
-  @PreAuthorize("@resourceSecurity.isOwner(#userId, authentication) or hasRole('ADMIN')")
+  @PreAuthorize("@resourceSecurity.isOwner(#userId, authentication) or hasAuthority('ROLE_ADMIN')")
   @Override
   public ResponseEntity<Void> delete(@PathVariable("userId") UUID userId) {
     userService.delete(userId);

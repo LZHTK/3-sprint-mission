@@ -75,7 +75,7 @@ public class AuthController implements AuthApi {
    * 사용자 권한 업데이트 API
    * ADMIN 권한을 가진 사용자만 접근 가능*/
   @PutMapping("/role")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<UserDto> updateUserRole(
       @RequestBody @Valid UserRoleUpdateRequest request,
       @AuthenticationPrincipal DiscodeitUserDetails userDetails) {

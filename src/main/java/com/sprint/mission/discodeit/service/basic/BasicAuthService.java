@@ -45,18 +45,26 @@ public class BasicAuthService implements AuthService {
      * 특정 사용자의 모든 활성 세션을 무효화
      * */
     private void invalidateSessions(String username) {
-        sessionRegistry.getAllSessions(
-            // username으로 Princiapl 조회 ( DiscodeitUserDetails 객체 )
-            sessionRegistry.getAllPrincipals().stream()
-                .filter(principal -> principal instanceof DiscodeitUserDetails)
-                .map(principal -> (DiscodeitUserDetails) principal)
-                .filter(userDetails -> userDetails.getUsername().equals(username))
-                .findFirst()
-                .orElse(null),
-            false
-        ).forEach(sessionInfo -> {
-            log.debug("세션 무효화 : sessionId = {}, username = {}", sessionInfo.getSessionId(), username);
-            sessionInfo.expireNow();
-        });
+        // 모든 주체들 중에서 해당 username을 가진 DiscodeitUserDetails 찾기
+        DiscodeitUserDetails targetPrincipal = sessionRegistry.getAllPrincipals().stream()
+            .filter(principal -> principal instanceof DiscodeitUserDetails)
+            .map(principal -> (DiscodeitUserDetails) principal)
+            .filter(userDetails -> userDetails.getUsername().equals(username))
+            .findFirst()
+            .orElse(null);
+
+        // null 체크 추가
+        if (targetPrincipal == null) {
+            log.debug("활성 세션을 찾을 수 없습니다: username = {}", username);
+            return;
+        }
+
+        // 해당 주체의 모든 세션 무효화
+        sessionRegistry.getAllSessions(targetPrincipal, false)
+            .forEach(sessionInfo -> {
+                log.debug("세션 무효화 : sessionId = {}, username = {}",
+                    sessionInfo.getSessionId(), username);
+                sessionInfo.expireNow();
+            });
     }
 }

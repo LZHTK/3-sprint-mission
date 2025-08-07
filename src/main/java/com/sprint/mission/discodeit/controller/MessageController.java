@@ -68,7 +68,7 @@ public class MessageController implements MessageApi {
   }
 
   @PatchMapping(path = "{messageId}")
-  @PreAuthorize("@resourceSecurity.isMessageAuthor(#messageId, authentication) or hasRole('ADMIN')")
+  @PreAuthorize("@resourceSecurity.isMessageAuthor(#messageId, authentication) or hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<MessageDto> update(@PathVariable("messageId") UUID messageId,
       @Valid @RequestBody MessageUpdateRequest request) {
     MessageDto updatedMessage = messageService.update(messageId, request);
@@ -78,7 +78,7 @@ public class MessageController implements MessageApi {
   }
 
   @DeleteMapping(path = "{messageId}")
-  @PreAuthorize("@resourceSecurity.isMessageAuthor(#messageId, authentication) or hasRole('ADMIN')")
+  @PreAuthorize("@resourceSecurity.isMessageAuthor(#messageId, authentication) or hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> delete(@PathVariable("messageId") UUID messageId) {
     messageService.delete(messageId);
     return ResponseEntity
