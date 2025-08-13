@@ -91,6 +91,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/users").permitAll()          // 회원가입
                 .requestMatchers("/api/auth/login").permitAll()     // 로그인
                 .requestMatchers("/api/auth/logout").permitAll()    // 로그아웃
+                .requestMatchers("/api/auth/refresh").permitAll()
                 // API가 아닌 요청 (Swagger, Actuator 등)
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
