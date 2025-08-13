@@ -63,8 +63,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, SessionRegistry sessionRegistry,
-        UserDetailsService userDetailsService) throws Exception{
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           SessionRegistry sessionRegistry) throws Exception{
         return http
             // CSRF 설정 - 쿠키 기반 CSRF 토큰 사용
             .csrf(csrf -> csrf

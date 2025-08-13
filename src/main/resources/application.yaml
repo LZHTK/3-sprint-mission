@@ -51,3 +51,8 @@ discodeit:
       region: ${AWS_S3_REGION}
       bucket: ${AWS_S3_BUCKET}
       presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:600} # 기본값: 10분
+
+jwt:
+  secret: ${JWT_SECRET:myVerySecureSecretKeyForJWTTokenGenerationThatShouldBeVeryLongAndSecure}
+  expiration-minutes: 60      # 액세스 토큰 만료 시간 (분)
+  refresh-expiration-days: 7  # 리프레시 토큰 만료 시간 (일)

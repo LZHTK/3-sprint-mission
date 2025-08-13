@@ -52,7 +52,6 @@ public class BasicUserServiceTest {
         User user = new User(userCreateRequest.username(), userCreateRequest.email(), userCreateRequest.password(), null);
         UserDto userDto = new UserDto(user.getId(), user.getUsername(), user.getEmail(), Role.USER
             , null,true);
-        UserStatus userStatus = new UserStatus(user, Instant.now());
         given(userRepository.existsByUsername(userCreateRequest.username())).willReturn(false);
         given(userRepository.existsByEmail(userCreateRequest.email())).willReturn(false);
         given(userRepository.save(any(User.class))).willReturn(user);
