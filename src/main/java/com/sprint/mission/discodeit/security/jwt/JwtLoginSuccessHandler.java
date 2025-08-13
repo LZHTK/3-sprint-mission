@@ -38,7 +38,7 @@ public class JwtLoginSuccessHandler implements AuthenticationSuccessHandler {
             String refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
             // 리프레시 토큰을 HTTP-Only 쿠키에 저장
-            Cookie refreshTokenCookie = new Cookie("REFRESH_TOKEN", refreshToken);
+            Cookie refreshTokenCookie = new Cookie("REFRESH-TOKEN", refreshToken);
             refreshTokenCookie.setHttpOnly(true);
             refreshTokenCookie.setSecure(request.isSecure());
             refreshTokenCookie.setPath("/");
