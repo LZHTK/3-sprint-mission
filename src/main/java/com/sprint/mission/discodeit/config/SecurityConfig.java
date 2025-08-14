@@ -5,7 +5,10 @@ import com.sprint.mission.discodeit.security.LoginFailureHandler;
 import com.sprint.mission.discodeit.security.jwt.JwtAuthenticationFilter;
 import com.sprint.mission.discodeit.security.jwt.JwtLoginSuccessHandler;
 import com.sprint.mission.discodeit.security.jwt.JwtLogoutHandler;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -30,6 +33,7 @@ import org.springframework.security.web.authentication.Http403ForbiddenEntryPoin
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 @Configuration
@@ -69,7 +73,15 @@ public class SecurityConfig {
                 // 쿠키 기반 CSRF 토큰 사용
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 // CSRF 토큰 요청 처리 핸들러 설정
-                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler() {
+                    // 토큰을 강제 로드해서 XSRF-TOKEN 쿠키의 발급/회전을 보강하는 handle 메서드 재정의
+                    @Override
+                    public void handle(HttpServletRequest request, HttpServletResponse response,
+                                        Supplier<CsrfToken> csrfToken) {
+                        super.handle(request, response, csrfToken);
+                        csrfToken.get();
+                    }
+                })
                 .ignoringRequestMatchers("/api/auth/login")
             )
             .formLogin(login -> login
@@ -154,15 +166,6 @@ public class SecurityConfig {
      * */
     @Bean
     public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
-
-    /**
-     * SessionRegistry Bean 정의
-     * 사용자 세션 추적 및 관리를 위한 빈
-     */
-    @Bean
-    public SessionRegistry sessionRegistry() {
-        return new SessionRegistryImpl();
-    }
 
     /**
      * 메서드 보안에서 권한 계층 구조를 사용하도록 설정
