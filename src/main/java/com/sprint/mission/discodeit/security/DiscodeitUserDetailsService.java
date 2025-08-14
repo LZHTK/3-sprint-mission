@@ -34,6 +34,6 @@ public class DiscodeitUserDetailsService implements UserDetailsService {
         UserDto userDto = userMapper.toDto(user);
 
         log.debug("사용자 인증 정보 로드 완료 : {} ", username);
-        return new DiscodeitUserDetails(userDto, user.getPassword());
+        return new DiscodeitUserDetails(userDto, user.getPassword(),user);
     }
 }

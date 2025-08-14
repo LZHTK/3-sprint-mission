@@ -1,6 +1,8 @@
 package com.sprint.mission.discodeit.security.jwt;
 
+import com.sprint.mission.discodeit.security.DiscodeitUserDetails;
 import com.sprint.mission.discodeit.security.DiscodeitUserDetailsService;
+import com.sprint.mission.discodeit.service.UserSessionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final DiscodeitUserDetailsService userDetailsService;
     private final JwtRegistry jwtRegistry;
+    private final UserSessionService userSessionService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -83,6 +86,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // SecurityContext에 인증 정보 설정
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                // JWT 토큰이 유효할 때 사용자를 온라인으로 표시
+                if (userDetails instanceof DiscodeitUserDetails discodeitUserDetails) {
+                    userSessionService.markUserOnline(discodeitUserDetails.getUserId());
+                    log.debug("User {} marked as online", discodeitUserDetails.getUserId());
+                }
 
                 log.debug("JWT 인증 성공 : {}", username);
             }

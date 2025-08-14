@@ -13,6 +13,7 @@ import com.sprint.mission.discodeit.mapper.UserMapper;
 import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.service.UserService;
+import com.sprint.mission.discodeit.service.UserSessionService;
 import com.sprint.mission.discodeit.storage.BinaryContentStorage;
 import java.time.Instant;
 import java.util.List;
@@ -34,8 +35,10 @@ public class BasicUserService implements UserService {
   private final BinaryContentRepository binaryContentRepository;
   private final BinaryContentStorage binaryContentStorage;
   private final PasswordEncoder passwordEncoder;
+  private final UserSessionService userSessionService;
 
-  @Transactional
+
+    @Transactional
   @Override
   public UserDto create(UserCreateRequest userCreateRequest,
       Optional<BinaryContentCreateRequest> optionalProfileCreateRequest) {
@@ -76,7 +79,7 @@ public class BasicUserService implements UserService {
     Instant now = Instant.now();
 
     userRepository.save(user);
-    return userMapper.toDto(user);
+    return userMapper.toDto(user, false);
   }
 
   @Transactional(readOnly = true)
@@ -84,12 +87,15 @@ public class BasicUserService implements UserService {
   public UserDto find(UUID userId) {
      log.info("[유저 조회 시도] 유저 ID : {}", userId);
 
-    return userRepository.findById(userId)
-        .map(userMapper::toDto)
-        .orElseThrow(() -> {
-            log.error("[유저 조회 실패] 해당 유저를 찾을 수 없습니다. 유저 ID : {}", userId);
-            return new UserNotFoundException();
-        });
+      return userRepository.findById(userId)
+          .map(user -> {
+              boolean isOnline = userSessionService.isUserOnline(userId);
+              return userMapper.toDto(user, isOnline);
+          })
+          .orElseThrow(() -> {
+              log.error("[유저 조회 실패] 해당 유저를 찾을 수 없습니다. 유저 ID : {}", userId);
+              return new UserNotFoundException();
+          });
   }
 
   @Transactional(readOnly = true)
@@ -97,10 +103,13 @@ public class BasicUserService implements UserService {
   public List<UserDto> findAll() {
       log.info("[모든 유저 조회 시도]");
 
-    return userRepository.findAllWithProfileAndStatus()
-        .stream()
-        .map(userMapper::toDto)
-        .toList();
+      return userRepository.findAllWithProfileAndStatus()
+          .stream()
+          .map(user -> {
+              boolean isOnline = userSessionService.isUserOnline(user.getId());
+              return userMapper.toDto(user, isOnline);
+          })
+          .toList();
   }
 
   @Transactional
@@ -152,7 +161,8 @@ public class BasicUserService implements UserService {
     user.update(newUsername, newEmail, encodedNewPassword, nullableProfile);
       log.info("[유저 수정 성공] 유저 ID : {}", userId);
 
-    return userMapper.toDto(user);
+      boolean isOnline = userSessionService.isUserOnline(userId);
+      return userMapper.toDto(user, isOnline);
   }
 
   @Transactional
@@ -165,7 +175,10 @@ public class BasicUserService implements UserService {
       throw new UserNotFoundException();
     }
 
-    userRepository.deleteById(userId);
+      // 사용자 삭제 시 세션도 제거
+      userSessionService.markUserOffline(userId);
+
+      userRepository.deleteById(userId);
     log.info("[유저 삭제 성공] 유저 ID: {}", userId);
   }
 }

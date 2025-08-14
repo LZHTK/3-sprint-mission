@@ -1,9 +1,11 @@
 package com.sprint.mission.discodeit.security;
 
 import com.sprint.mission.discodeit.dto.data.UserDto;
+import com.sprint.mission.discodeit.entity.User;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -16,6 +18,7 @@ public class DiscodeitUserDetails implements UserDetails {
 
     private final UserDto userDto;
     private final String password;
+    private final User user;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -51,6 +54,15 @@ public class DiscodeitUserDetails implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+    public UUID getUserId() {
+        return this.user.getId();
+    }
+
+    public User getUser() {
+        return user;
+    }
+
 
     /**
      * SessionRegistry가 사용자 세션을 올바르게 식별하고 관리할 수 있도록 오버라이딩
