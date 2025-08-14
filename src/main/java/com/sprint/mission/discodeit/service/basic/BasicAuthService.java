@@ -6,12 +6,12 @@ import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.mapper.UserMapper;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.security.DiscodeitUserDetails;
+import com.sprint.mission.discodeit.security.jwt.JwtRegistry;
 import com.sprint.mission.discodeit.service.AuthService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +22,7 @@ public class BasicAuthService implements AuthService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final SessionRegistry sessionRegistry;
+    private final JwtRegistry jwtRegistry;
 
     @Override
     @Transactional
@@ -34,7 +34,7 @@ public class BasicAuthService implements AuthService {
         User savedUser = userRepository.save(user);
 
         // 권한이 변경된 사용자의 모든 활성 세션 무효화
-        invalidateSessions(user.getUsername());
+        invalidateSessions(userId);
 
         log.info("사용자 권한 업데이트 완료 및 세션 무효화 : userId = {} , newRole = {} ", userId, newRole);
 
@@ -43,28 +43,14 @@ public class BasicAuthService implements AuthService {
 
     /**
      * 특정 사용자의 모든 활성 세션을 무효화
+     * JwtRegistry 사용
      * */
-    private void invalidateSessions(String username) {
-        // 모든 주체들 중에서 해당 username을 가진 DiscodeitUserDetails 찾기
-        DiscodeitUserDetails targetPrincipal = sessionRegistry.getAllPrincipals().stream()
-            .filter(principal -> principal instanceof DiscodeitUserDetails)
-            .map(principal -> (DiscodeitUserDetails) principal)
-            .filter(userDetails -> userDetails.getUsername().equals(username))
-            .findFirst()
-            .orElse(null);
-
-        // null 체크 추가
-        if (targetPrincipal == null) {
-            log.debug("활성 세션을 찾을 수 없습니다: username = {}", username);
-            return;
+    private void invalidateSessions(UUID userId) {
+        if (jwtRegistry.hasActiveJwtInformationByUserId(userId)) {
+            jwtRegistry.invalidateJwtInformationByUserId(userId);
+            log.info("사용자 JWT 세션 무효화 완료 : userId = {} ", userId);
+        } else {
+            log.debug("무효화할 JWT 세션을 찾을 수 없습니다 : userId = {} ", userId);
         }
-
-        // 해당 주체의 모든 세션 무효화
-        sessionRegistry.getAllSessions(targetPrincipal, false)
-            .forEach(sessionInfo -> {
-                log.debug("세션 무효화 : sessionId = {}, username = {}",
-                    sessionInfo.getSessionId(), username);
-                sessionInfo.expireNow();
-            });
     }
 }

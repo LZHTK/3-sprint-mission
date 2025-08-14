@@ -8,6 +8,8 @@ import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.exception.ErrorResponse;
 import com.sprint.mission.discodeit.security.DiscodeitUserDetails;
 import com.sprint.mission.discodeit.security.DiscodeitUserDetailsService;
+import com.sprint.mission.discodeit.security.jwt.JwtInformation;
+import com.sprint.mission.discodeit.security.jwt.JwtRegistry;
 import com.sprint.mission.discodeit.security.jwt.JwtTokenProvider;
 import com.sprint.mission.discodeit.service.AuthService;
 import jakarta.servlet.http.Cookie;
@@ -41,6 +43,7 @@ public class AuthController implements AuthApi {
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final DiscodeitUserDetailsService userDetailsService;
+  private final JwtRegistry jwtRegistry;
 
   /**
    * CSRF 토큰 발급 API
@@ -81,6 +84,13 @@ public class AuthController implements AuthApi {
             .body(new ErrorResponse(HttpStatus.UNAUTHORIZED, ErrorCode.INVALID_PASSWORD));
       }
 
+      // JwtRegistry에서 리프레시 토큰 상태 확인 (추가된 검증)
+      if (!jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
+        log.warn("레지스트리에 등록되지 않은 리프레시 토큰입니다.");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(new ErrorResponse(HttpStatus.UNAUTHORIZED, ErrorCode.INVALID_PASSWORD));
+      }
+
       // Refresh 토큰 유효성 검사
       if (!jwtTokenProvider.validateToken(refreshToken)) {
         log.warn("유효하지 않은 Refresh 토큰입니다.");
@@ -110,8 +120,14 @@ public class AuthController implements AuthApi {
       String newAccessToken = jwtTokenProvider.generateAccessToken(authentication);
       String newRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
+      // JWTRegistry에서 토큰 로테이션
+      JwtInformation newJwtInformation = new JwtInformation(
+          discodeitUserdetails.getUserDto(), newAccessToken, newRefreshToken
+      );
+      jwtRegistry.rotateJwtInformation(refreshToken, newJwtInformation);
+
       // 새로운 Refresh 토큰을 쿠키에 설정 ( 기존 토큰을 교체 )
-      Cookie newRefreshTokenCookie = new Cookie("REFRESH-TOKEN", newRefreshToken);
+      Cookie newRefreshTokenCookie = new Cookie("REFRESH_TOKEN", newRefreshToken);
       newRefreshTokenCookie.setHttpOnly(true);
       newRefreshTokenCookie.setSecure(request.isSecure());
       newRefreshTokenCookie.setPath("/");
@@ -138,7 +154,7 @@ public class AuthController implements AuthApi {
   private String extractRefreshTokenFromCookie(HttpServletRequest request) {
     if (request.getCookies() != null) {
       for (Cookie cookie : request.getCookies()) {
-        if ("REFRESH-TOKEN".equals(cookie.getName())) {
+        if ("REFRESH_TOKEN".equals(cookie.getName())) {
           return cookie.getValue();
         }
       }
@@ -147,8 +163,8 @@ public class AuthController implements AuthApi {
   }
 
   /**
-   * 사용자 권한 업데이트 API
-   * ADMIN 권한을 가진 사용자만 접근 가능*/
+   * 사용자 권한 업데이트 API - JwtRegistry를 활용한 강제 로그아웃 추가
+   */
   @PutMapping("/role")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<UserDto> updateUserRole(
@@ -156,14 +172,26 @@ public class AuthController implements AuthApi {
       @AuthenticationPrincipal DiscodeitUserDetails userDetails) {
 
     log.debug("사용자 권한 업데이트 요청 : userId = {}, newRole = {}, requestBy = {} " ,
-              request.userId(), request.newRole(), userDetails.getUsername());
+        request.userId(), request.newRole(), userDetails.getUsername());
 
-    UserDto updatedUser = authService.updateUserRole(request.userId(), request.newRole());
+    try {
+      // 권한이 변경된 사용자가 로그인 상태라면 강제 로그아웃 ( JwtRegistry 활용 )
+      if (jwtRegistry.hasActiveJwtInformationByUserId(request.userId())) {
+        jwtRegistry.invalidateJwtInformationByUserId(request.userId());
+        log.info("권한 변경으로 인한 강제 로그아웃 완료: userId={}", request.userId());
+      }
 
-    log.debug("사용자 권한 업데이트 완료 : userID = {}, newRole = {} ",
-              updatedUser.id(), updatedUser.role());
-    return ResponseEntity
-        .status(HttpStatus.OK)
-        .body(updatedUser);
+      UserDto updatedUser = authService.updateUserRole(request.userId(), request.newRole());
+
+      log.debug("사용자 권한 업데이트 완료 : userID = {}, newRole = {} ",
+          updatedUser.id(), updatedUser.role());
+
+      return ResponseEntity.ok(updatedUser);
+
+    } catch (Exception e) {
+      log.error("사용자 권한 업데이트 중 오류 발생: userId={}", request.userId(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(null);
+    }
   }
 }

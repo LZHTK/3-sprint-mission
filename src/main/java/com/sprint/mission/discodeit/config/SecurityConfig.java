@@ -4,6 +4,7 @@ import com.sprint.mission.discodeit.security.DiscodeitUserDetailsService;
 import com.sprint.mission.discodeit.security.LoginFailureHandler;
 import com.sprint.mission.discodeit.security.jwt.JwtAuthenticationFilter;
 import com.sprint.mission.discodeit.security.jwt.JwtLoginSuccessHandler;
+import com.sprint.mission.discodeit.security.jwt.JwtLogoutHandler;
 import java.util.List;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -39,6 +42,7 @@ public class SecurityConfig {
     private final LoginFailureHandler loginFailureHandler;
     private final DiscodeitUserDetailsService discodeitUserDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtLogoutHandler jwtLogoutHandler;
 
     /**
      * 정적 리소스에 대한 Security 필터 체인을 완전히 우회
@@ -75,9 +79,10 @@ public class SecurityConfig {
             )
             .logout(logout -> logout
                 .logoutUrl("/api/auth/logout")
+                .addLogoutHandler(jwtLogoutHandler)
                 .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT))
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID","REFRESH-TOKEN")
+                .deleteCookies("JSESSIONID","REFRESH_TOKEN")
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -151,6 +156,15 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
     /**
+     * SessionRegistry Bean 정의
+     * 사용자 세션 추적 및 관리를 위한 빈
+     */
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
+
+    /**
      * 메서드 보안에서 권한 계층 구조를 사용하도록 설정
      */
     @Bean
@@ -162,3 +176,6 @@ public class SecurityConfig {
         return handler;
     }
 }
+
+// 지금 로컬에서 런 돌려서 프론트로 확인하는데 뭘 할때다 403이 따라오는데 무슨 문제일까?
+// 현재 JWT을 사용해서 인증을 처리하는데 DB는 아직 persistent_logins와 같은 세션으로 처리해서 그런건가?

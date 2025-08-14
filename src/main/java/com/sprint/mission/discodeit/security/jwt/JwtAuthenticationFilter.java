@@ -23,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final DiscodeitUserDetailsService userDetailsService;
+    private final JwtRegistry jwtRegistry;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -49,6 +50,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String tokenType = jwtTokenProvider.getTokenType(token);
             if (!"access".equals(tokenType)) {
                 log.warn("액세스 토큰이 아닙니다! 토큰 타입 : {}", tokenType);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // JwtRegistry에서 토큰 상태 확인
+            if (!jwtRegistry.hasActiveJwtInformationByAccessToken(token)) {
+                log.warn("레지스트리에  등록되지 않은 토큰입니다.");
                 filterChain.doFilter(request, response);
                 return;
             }
