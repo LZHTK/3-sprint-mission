@@ -179,6 +179,3 @@ public class SecurityConfig {
         return handler;
     }
 }
-
-// 지금 로컬에서 런 돌려서 프론트로 확인하는데 뭘 할때다 403이 따라오는데 무슨 문제일까?
-// 현재 JWT을 사용해서 인증을 처리하는데 DB는 아직 persistent_logins와 같은 세션으로 처리해서 그런건가?
