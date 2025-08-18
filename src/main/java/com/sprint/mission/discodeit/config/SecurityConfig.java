@@ -44,26 +44,9 @@ public class SecurityConfig {
 
     private final JwtLoginSuccessHandler jwtLoginSuccessHandler;
     private final LoginFailureHandler loginFailureHandler;
-    private final DiscodeitUserDetailsService discodeitUserDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtLogoutHandler jwtLogoutHandler;
 
-    /**
-     * 정적 리소스에 대한 Security 필터 체인을 완전히 우회
-     * 성능 최적화를 위해 Security 처리 없이 바로 서빙
-     */
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring()
-            // 정적 리소스 완전 무시 (Security 필터 체인 우회)
-            .requestMatchers(
-                "/favicon.ico",
-                "/error",
-                "/assets/**",
-                "/*.css", "/*.js", "/*.png", "/*.jpg", "/*.ico", "/*.svg",
-                "/webjars/**"
-            );
-    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
