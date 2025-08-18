@@ -2,6 +2,7 @@ package com.sprint.mission.discodeit.config;
 
 import com.sprint.mission.discodeit.security.DiscodeitUserDetailsService;
 import com.sprint.mission.discodeit.security.LoginFailureHandler;
+import com.sprint.mission.discodeit.security.SpaCsrfTokenRequestHandler;
 import com.sprint.mission.discodeit.security.jwt.JwtAuthenticationFilter;
 import com.sprint.mission.discodeit.security.jwt.JwtLoginSuccessHandler;
 import com.sprint.mission.discodeit.security.jwt.JwtLogoutHandler;
@@ -56,16 +57,7 @@ public class SecurityConfig {
                 // 쿠키 기반 CSRF 토큰 사용
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 // CSRF 토큰 요청 처리 핸들러 설정
-                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler() {
-                    // 토큰을 강제 로드해서 XSRF-TOKEN 쿠키의 발급/회전을 보강하는 handle 메서드 재정의
-                    @Override
-                    public void handle(HttpServletRequest request, HttpServletResponse response,
-                                        Supplier<CsrfToken> csrfToken) {
-                        super.handle(request, response, csrfToken);
-                        csrfToken.get();
-                    }
-                })
-                .ignoringRequestMatchers("/api/auth/login")
+                .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
             )
             .formLogin(login -> login
                 .loginProcessingUrl("/api/auth/login")
