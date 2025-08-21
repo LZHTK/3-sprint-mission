@@ -5,8 +5,10 @@ import com.sprint.mission.discodeit.dto.request.BinaryContentCreateRequest;
 import com.sprint.mission.discodeit.dto.request.UserCreateRequest;
 import com.sprint.mission.discodeit.dto.request.UserUpdateRequest;
 import com.sprint.mission.discodeit.entity.BinaryContent;
+import com.sprint.mission.discodeit.entity.Role;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.event.BinaryContentCreatedEvent;
+import com.sprint.mission.discodeit.event.RoleUpdatedEvent;
 import com.sprint.mission.discodeit.exception.user.UserEmailAlreadyExistsException;
 import com.sprint.mission.discodeit.exception.user.UserNameAlreadyExistsException;
 import com.sprint.mission.discodeit.exception.user.UserNotFoundException;
@@ -182,4 +184,33 @@ public class BasicUserService implements UserService {
       userRepository.deleteById(userId);
     log.info("[유저 삭제 성공] 유저 ID: {}", userId);
   }
+
+    // 새로운 메서드 추가 (클래스 마지막에)
+    @Transactional
+    @Override
+    public UserDto updateRole(UUID userId, Role newRole) {
+        log.info("[사용자 권한 변경 시도] userId: {}, newRole: {}", userId, newRole);
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> {
+                log.error("[사용자 권한 변경 실패] 사용자를 찾을 수 없습니다. userId: {}", userId);
+                return new UserNotFoundException();
+            });
+
+        Role oldRole = user.getRole();
+
+        // 권한이 실제로 변경되는 경우만 처리
+        if (!oldRole.equals(newRole)) {
+            user.updateRole(newRole);
+
+            // ★★★ 권한 변경 이벤트 발행 ★★★
+            eventPublisher.publishEvent(new RoleUpdatedEvent(userId, oldRole, newRole));
+
+            log.info("[사용자 권한 변경 성공] userId: {}, {} -> {}", userId, oldRole, newRole);
+        } else {
+            log.info("[사용자 권한 변경 스킵] 기존 권한과 동일합니다. userId: {}, role: {}", userId, newRole);
+        }
+
+        return userMapper.toDto(user);
+    }
 }

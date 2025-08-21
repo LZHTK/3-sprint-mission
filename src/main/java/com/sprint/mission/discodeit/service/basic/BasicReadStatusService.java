@@ -101,6 +101,13 @@ public class BasicReadStatusService implements ReadStatusService {
           throw new ReadStatusNotFoundException();
         });
     readStatus.update(newLastReadAt);
+
+    if (request.newNotificationEnabled() != null) {
+      readStatus.updateNotificationEnabled(request.newNotificationEnabled());
+      log.info("[알림 설정 변경] readStatusId : {}, notificationEnabled : {}",
+                readStatusId, request.newNotificationEnabled());
+    }
+
     log.info("[읽음 정보 수정 성공] 읽음 정보 ID : {}", readStatusId);
 
     return readStatusMapper.toDto(readStatus);
