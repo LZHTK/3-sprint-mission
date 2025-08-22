@@ -43,6 +43,8 @@ public class JwtLogoutHandler implements LogoutHandler {
         } catch (Exception e) {
             log.error("로그아웃 처리 중 오류 발생", e);
         }
+
+        
     }
 
     /**

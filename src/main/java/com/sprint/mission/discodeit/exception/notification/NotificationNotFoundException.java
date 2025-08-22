@@ -1,7 +1,10 @@
 package com.sprint.mission.discodeit.exception.notification;
 
-public class NotificationNotFoundException extends RuntimeException {
+import com.sprint.mission.discodeit.exception.DiscodeitException;
+import com.sprint.mission.discodeit.exception.ErrorCode;
+
+public class NotificationNotFoundException extends DiscodeitException {
     public NotificationNotFoundException() {
-        super("알림을 찾을 수 없습니다.");
+        super(ErrorCode.NOTIFICATION_NOT_FOUND);
     }
 }
