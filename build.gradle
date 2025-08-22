@@ -56,6 +56,9 @@ dependencies {
 
     implementation 'com.nimbusds:nimbus-jose-jwt:10.3'
 
+    implementation 'io.micrometer:micrometer-core'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
 }
 dependencyManagement {
     imports {

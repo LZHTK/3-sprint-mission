@@ -56,3 +56,15 @@ jwt:
   secret: ${JWT_SECRET:myVerySecureSecretKeyForJWTTokenGenerationThatShouldBeVeryLongAndSecure}
   expiration-minutes: 60      # 액세스 토큰 만료 시간 (분)
   refresh-expiration-days: 7  # 리프레시 토큰 만료 시간 (일)
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  observations:
+    annotations:
+      enabled: true
