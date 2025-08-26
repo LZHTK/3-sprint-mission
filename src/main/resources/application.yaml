@@ -28,6 +28,14 @@ spring:
     # default_batch_fetch_size: 100
     open-in-view: false
 
+  # 캐시 설정
+  cache:
+    caffeine:
+      spec: >
+        maximumSize=100,
+        expireAfterAccess=600s,
+        recordStats
+
 logging:
   level:
     root: info

@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +29,7 @@ public class BasicNotificationService implements NotificationService {
     @Transactional
     @Override
     public NotificationDto create(UUID receiverId, String title, String content) {
-        log.info("[알림 생성 시도] 수신자: {}, 제목: {}", receiverId, title);
+        log.info("[CACHE-TEST / 알림 생성 시도] 수신자: {}, 제목: {}", receiverId, title);
 
         Notification notification = new Notification(receiverId, title, content);
         notificationRepository.save(notification);
@@ -38,11 +37,14 @@ public class BasicNotificationService implements NotificationService {
         // CacheManager를 사용해 해당 사용자의 알림 캐시 수동 무효화
         var cache = cacheManager.getCache("userNotifications");
         if (cache != null) {
+            boolean hadValue = cache.get(receiverId) != null;
             cache.evict(receiverId);
-            log.info("[수동 캐시 무효화] 사용자: {}", receiverId);
+            log.info("[CACHE-EVICT / 수동 캐시 무효화] 사용자: {}, 기존 캐시 존재 여부 : {}", receiverId, hadValue);
+        } else {
+            log.warn("[CACHE-WARNING] userNotifications 캐시를 찾을 수 없음");
         }
 
-        log.info("[알림 생성 성공] ID: {}, 수신자: {}", notification.getId(), receiverId);
+        log.info("[CACHE-TEST / 알림 생성 성공] ID: {}, 수신자: {}", notification.getId(), receiverId);
         return notificationMapper.toDto(notification);
     }
 
@@ -50,14 +52,14 @@ public class BasicNotificationService implements NotificationService {
     @Override
     @Cacheable(value = "userNotifications", key = "#receiverId" )
     public List<NotificationDto> findAllByReceiverId(UUID receiverId) {
-        log.info("[알림 목록 조회] 수신자: {}", receiverId);
+        log.info("[CACHE-MISS / 알림 목록 조회] 수신자: {} ( 캐시 미스 ! )", receiverId);
 
         List<NotificationDto> notifications = notificationRepository.findAllByReceiverIdOrderByCreatedAtDesc(receiverId)
             .stream()
             .map(notificationMapper::toDto)
             .toList();
 
-        log.info("[알림 목록 조회 완료] 수신자: {}, 알림 수: {}개", receiverId, notifications.size());
+        log.info("[CACHE-STORE / 알림 목록 조회 완료] 수신자: {}, 알림 수: {}개", receiverId, notifications.size());
         return notifications;
     }
 
@@ -65,7 +67,7 @@ public class BasicNotificationService implements NotificationService {
     @Override
     @CacheEvict(value = "userNotifications", key = "#receiverId" )
     public void delete(UUID notificationId, UUID receiverId) {
-        log.info("[알림 삭제 시도] ID: {}, 요청자: {}", notificationId, receiverId);
+        log.info("[CACHE-TEST / 알림 삭제 시도] ID: {}, 요청자: {}", notificationId, receiverId);
 
         Notification notification = notificationRepository.findById(notificationId)
             .orElseThrow(() -> {
@@ -81,6 +83,7 @@ public class BasicNotificationService implements NotificationService {
         }
 
         notificationRepository.delete(notification);
-        log.info("[알림 삭제 성공] ID: {}, 삭제자: {}", notificationId, receiverId);
+        log.info("[CACHE-EVICT] @CacheEvict 어노테이션에 의한 자동 캐시 무효화 - 사용자: {}", receiverId);
+        log.info("[CACHE-TEST / 알림 삭제 성공] ID: {}, 삭제자: {}", notificationId, receiverId);
     }
 }

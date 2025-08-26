@@ -6,6 +6,7 @@ import com.sprint.mission.discodeit.service.NotificationService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/notifications")
+@Slf4j
 public class NotificationController {
 
     private final NotificationService notificationService;
@@ -35,7 +37,15 @@ public class NotificationController {
             targetReceiverId = userDetails.getUserId();
         }
 
+        log.info("[API-REQUEST] 알림 목록 조회 요청 - 대상 사용자: {}", targetReceiverId);
+
+        long startTime = System.currentTimeMillis();
         List<NotificationDto> notifications = notificationService.findAllByReceiverId(targetReceiverId);
+        long endTime = System.currentTimeMillis();
+
+        log.info("[PERFORMANCE] 알림 목록 조회 완료 - 응답시간: {}ms, 알림 수: {}개",
+            (endTime - startTime), notifications.size());
+
         return ResponseEntity.ok().body(notifications);
     }
 
@@ -47,7 +57,14 @@ public class NotificationController {
         DiscodeitUserDetails userDetails = (DiscodeitUserDetails) authentication.getPrincipal();
         UUID currentUserId = userDetails.getUserId();
 
+        log.info("[API-REQUEST] 알림 삭제 요청 - 알림 ID: {}, 요청자: {}", notificationId, currentUserId);
+
+        long startTime = System.currentTimeMillis();
         notificationService.delete(notificationId, currentUserId);
+        long endTime = System.currentTimeMillis();
+
+        log.info("[PERFORMANCE] 알림 삭제 완료 - 응답시간: {}ms", (endTime - startTime));
+
         return ResponseEntity.noContent().build();
     }
 }
