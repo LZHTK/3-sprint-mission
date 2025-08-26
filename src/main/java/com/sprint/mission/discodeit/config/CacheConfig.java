@@ -1,40 +1,38 @@
 package com.sprint.mission.discodeit.config;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import java.time.Duration;
-import java.util.Arrays;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 
 @Configuration
 @EnableCaching
 public class CacheConfig {
 
     @Bean
-    public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
+    public RedisCacheConfiguration redisCacheConfiguration(ObjectMapper objectMapper) {
+        ObjectMapper redisObjectMapper = objectMapper.copy();
+        redisObjectMapper.activateDefaultTyping(
+            LaissezFaireSubTypeValidator.instance,
+            DefaultTyping.EVERYTHING,
+            As.PROPERTY
+        );
 
-        // Caffeine 설정
-        Caffeine<Object, Object> caffeine = Caffeine.newBuilder()
-            .maximumSize(100)
-            .expireAfterAccess(Duration.ofSeconds(600))
-            .recordStats(); // 통계 활성화
-
-        cacheManager.setCaffeine(caffeine);
-
-        // 동적 캐시 생성 허용 (이 설정이 중요!)
-        cacheManager.setAllowNullValues(false);
-
-        // 캐시 이름들 명시적 설정
-        cacheManager.setCacheNames(Arrays.asList(
-            "userChannels",
-            "userNotifications",
-            "users"
-        ));
-
-        return cacheManager;
+        return RedisCacheConfiguration.defaultCacheConfig()
+            .serializeValuesWith(
+                RedisSerializationContext.SerializationPair.fromSerializer(
+                    new GenericJackson2JsonRedisSerializer(redisObjectMapper)
+                )
+            )
+            .prefixCacheNameWith("discodeit:")
+            .entryTtl(Duration.ofSeconds(600))
+            .disableCachingNullValues();
     }
 }

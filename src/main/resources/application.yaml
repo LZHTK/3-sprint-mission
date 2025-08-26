@@ -9,6 +9,22 @@ spring:
         instance:
           name: discodeit
 
+    # 캐시 설정 - Redis로 변경
+    cache:
+      type: redis
+      cache-names:
+        - userChannels
+        - userNotifications
+        - users
+      redis:
+        enable-statistics: true
+
+    # Redis 연결 설정 추가
+    data:
+      redis:
+        host: ${REDIS_HOST:localhost}
+        port: ${REDIS_PORT:6379}
+
   servlet:
     multipart:
       maxFileSize: 10MB
