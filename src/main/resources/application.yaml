@@ -39,6 +39,7 @@ logging:
     org.springframework.security.config.annotation.web.builders.HttpSecurity: DEBUG
     org.springframework.security.web.access.intercept.FilterSecurityInterceptor: DEBUG
     org.springframework.security.access.prepost.PreAuthorizeAuthorizationManager: DEBUG
+    org.springframework.cache: DEBUG
 
 discodeit:
   storage:
@@ -61,10 +62,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,caches
   endpoint:
     health:
       show-details: always
+    caches:
+      enabled: true
   observations:
     annotations:
       enabled: true
+  metrics:
+    cache:
+      instrument: true
