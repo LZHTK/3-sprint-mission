@@ -23,6 +23,10 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,13 +43,22 @@ public class BasicUserService implements UserService {
   private final ApplicationEventPublisher eventPublisher;
   private final PasswordEncoder passwordEncoder;
   private final UserSessionService userSessionService;
+  private final CacheManager cacheManager;
 
 
-    @Transactional
+  @Transactional
   @Override
   public UserDto create(UserCreateRequest userCreateRequest,
       Optional<BinaryContentCreateRequest> optionalProfileCreateRequest) {
-    String username = userCreateRequest.username();
+      log.info("[사용자 생성 시도] 사용자명: {}", userCreateRequest.username());
+
+    var cache = cacheManager.getCache("users");
+    if (cache != null) {
+        cache.clear();
+        log.info("[사용자 목록 캐시 무효화] - 새 사용자 생성으로 인함");
+    }
+
+      String username = userCreateRequest.username();
     String email = userCreateRequest.email();
 
     if (userRepository.existsByEmail(email)) {
@@ -103,6 +116,7 @@ public class BasicUserService implements UserService {
 
   @Transactional(readOnly = true)
   @Override
+  @Cacheable(value = "users")
   public List<UserDto> findAll() {
       log.info("[모든 유저 조회 시도]");
 
@@ -117,6 +131,7 @@ public class BasicUserService implements UserService {
 
   @Transactional
   @Override
+  @CacheEvict(value = "users", allEntries = true)
   public UserDto update(UUID userId, UserUpdateRequest userUpdateRequest,
       Optional<BinaryContentCreateRequest> optionalProfileCreateRequest) {
       log.info("[유저 수정 시도]");
@@ -170,6 +185,7 @@ public class BasicUserService implements UserService {
 
   @Transactional
   @Override
+  @CacheEvict(value = "users", allEntries = true)
   public void delete(UUID userId) {
       log.info("[유저 삭제 시도] 유저 ID : {}", userId);
 
@@ -185,9 +201,9 @@ public class BasicUserService implements UserService {
     log.info("[유저 삭제 성공] 유저 ID: {}", userId);
   }
 
-    // 새로운 메서드 추가 (클래스 마지막에)
     @Transactional
     @Override
+    @CacheEvict(value = "users", allEntries = true)
     public UserDto updateRole(UUID userId, Role newRole) {
         log.info("[사용자 권한 변경 시도] userId: {}, newRole: {}", userId, newRole);
 
@@ -213,4 +229,36 @@ public class BasicUserService implements UserService {
 
         return userMapper.toDto(user);
     }
+
+    // @CachePut을 활용한 강제 캐시 갱신 ( 필요한 case에만 )
+    @CachePut(value = "users")
+    @Transactional(readOnly = true)
+    public List<UserDto> refreshUserListCache() {
+        log.info("[강제 사용자 목록 캐시 갱신] - DB에서 최신 데이터 조회");
+
+        List<UserDto> users = userRepository.findAll()
+            .stream()
+            .map(userMapper::toDto)
+            .toList();
+
+        log.info("[사용자 목록 캐시 갱신 완료] 사용자 수: {}명", users.size());
+        return users;
+    }
+
+    public void clearUserRelatedCaches(UUID userId) {
+        // 해당 사용자의 채널 캐시 삭제
+        var channelCache = cacheManager.getCache("userChannels");
+        if (channelCache != null) {
+            channelCache.evict(userId);
+            log.info("[🗑️ 사용자 채널 캐시 삭제] 사용자 ID: {}", userId);
+        }
+
+        // 해당 사용자의 알림 캐시 삭제
+        var notificationCache = cacheManager.getCache("userNotifications");
+        if (notificationCache != null) {
+            notificationCache.evict(userId);
+            log.info("[🗑️ 사용자 알림 캐시 삭제] 사용자 ID: {}", userId);
+        }
+    }
+
 }

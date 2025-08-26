@@ -2,7 +2,6 @@ package com.sprint.mission.discodeit.service.basic;
 
 import com.sprint.mission.discodeit.dto.data.NotificationDto;
 import com.sprint.mission.discodeit.entity.Notification;
-import com.sprint.mission.discodeit.exception.ForbiddenException;
 import com.sprint.mission.discodeit.exception.notification.NotificationAccessDeniedException;
 import com.sprint.mission.discodeit.exception.notification.NotificationNotFoundException;
 import com.sprint.mission.discodeit.mapper.NotificationMapper;
@@ -12,7 +11,10 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.weaver.ast.Not;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ public class BasicNotificationService implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final CacheManager cacheManager;
 
     @Transactional
     @Override
@@ -32,6 +35,12 @@ public class BasicNotificationService implements NotificationService {
         Notification notification = new Notification(receiverId, title, content);
         notificationRepository.save(notification);
 
+        // CacheManager를 사용해 해당 사용자의 알림 캐시 수동 무효화
+        var cache = cacheManager.getCache("userNotifications");
+        if (cache != null) {
+            cache.evict(receiverId);
+            log.info("[수동 캐시 무효화] 사용자: {}", receiverId);
+        }
 
         log.info("[알림 생성 성공] ID: {}, 수신자: {}", notification.getId(), receiverId);
         return notificationMapper.toDto(notification);
@@ -39,6 +48,7 @@ public class BasicNotificationService implements NotificationService {
 
     @Transactional(readOnly = true)
     @Override
+    @Cacheable(value = "userNotifications", key = "#receiverId" )
     public List<NotificationDto> findAllByReceiverId(UUID receiverId) {
         log.info("[알림 목록 조회] 수신자: {}", receiverId);
 
@@ -53,6 +63,7 @@ public class BasicNotificationService implements NotificationService {
 
     @Transactional
     @Override
+    @CacheEvict(value = "userNotifications", key = "#receiverId" )
     public void delete(UUID notificationId, UUID receiverId) {
         log.info("[알림 삭제 시도] ID: {}, 요청자: {}", notificationId, receiverId);
 
