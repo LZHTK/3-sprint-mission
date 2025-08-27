@@ -27,6 +27,15 @@ management:
   endpoint:
     health:
       show-details: always
+    metrics:
+      enabled: true
+      metrics:
+        cache:
+          instrument: true  # 캐시 메트릭 활성화
+        export:
+          prometheus:
+            enabled: true
+
 
   info:
     env:

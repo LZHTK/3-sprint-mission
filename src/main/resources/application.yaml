@@ -19,22 +19,20 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-
-    # 캐시 설정 - Redis로 변경
-    cache:
-      type: redis
-      cache-names:
-        - userChannels
-        - userNotifications
-        - users
-      caffeine:
-        spec: >
-          maximumSize=100,
-          expireAfterAccess=600s,
-          recordStats
-      redis:
-        enable-statistics: true
-
+  # 캐시 설정 - Redis로 변경
+  cache:
+    type: redis
+    cache-names:
+      - channels
+      - notifications
+      - users
+    caffeine:
+      spec: >
+        maximumSize=100,
+        expireAfterAccess=600s,
+        recordStats
+    redis:
+      enable-statistics: true
     # Redis 연결 설정 추가
     data:
       redis:
