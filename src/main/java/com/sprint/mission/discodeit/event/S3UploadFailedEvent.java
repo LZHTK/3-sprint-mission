@@ -2,10 +2,11 @@ package com.sprint.mission.discodeit.event;
 
 import java.util.UUID;
 
-public record BinaryContentCreatedEvent(
+public record S3UploadFailedEvent(
     UUID binaryContentId,
-    byte[] bytes,
-    String fileName
+    String filename,
+    String errorMessage,
+    String reason
 ) {
 
 }

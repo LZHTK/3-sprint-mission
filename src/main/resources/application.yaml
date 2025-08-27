@@ -8,6 +8,17 @@ spring:
       client:
         instance:
           name: discodeit
+  # Kafka 설정
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: discodeit-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
     # 캐시 설정 - Redis로 변경
     cache:
@@ -53,13 +64,15 @@ logging:
     root: info
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
-    com.sprint.mission.discodeit: info
+    com.sprint.mission.discodeit: debug
     org.springframework.security: DEBUG
     org.springframework.security.web.FilterChainProxy: DEBUG
     org.springframework.security.config.annotation.web.builders.HttpSecurity: DEBUG
     org.springframework.security.web.access.intercept.FilterSecurityInterceptor: DEBUG
     org.springframework.security.access.prepost.PreAuthorizeAuthorizationManager: DEBUG
     org.springframework.cache: DEBUG
+    org.springframework.kafka: DEBUG
+    org.apache.kafka: INFO
 
 discodeit:
   storage:

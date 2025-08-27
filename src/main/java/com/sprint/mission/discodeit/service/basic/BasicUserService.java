@@ -78,7 +78,7 @@ public class BasicUserService implements UserService {
           BinaryContent binaryContent = new BinaryContent(fileName, (long) bytes.length,
               contentType);
           binaryContentRepository.save(binaryContent);
-          eventPublisher.publishEvent(new BinaryContentCreatedEvent(binaryContent.getId(), bytes));
+          eventPublisher.publishEvent(new BinaryContentCreatedEvent(binaryContent.getId(), bytes, fileName));
           return binaryContent;
         })
         .orElse(null);
@@ -162,7 +162,7 @@ public class BasicUserService implements UserService {
           BinaryContent binaryContent = new BinaryContent(fileName, (long) bytes.length,
               contentType);
           binaryContentRepository.save(binaryContent);
-          eventPublisher.publishEvent(new BinaryContentCreatedEvent(binaryContent.getId(), bytes));
+          eventPublisher.publishEvent(new BinaryContentCreatedEvent(binaryContent.getId(), bytes, fileName));
           return binaryContent;
         })
         .orElse(null);
@@ -260,5 +260,4 @@ public class BasicUserService implements UserService {
             log.info("[🗑️ 사용자 알림 캐시 삭제] 사용자 ID: {}", userId);
         }
     }
-
 }

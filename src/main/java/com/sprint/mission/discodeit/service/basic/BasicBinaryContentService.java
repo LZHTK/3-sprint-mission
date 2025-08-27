@@ -43,7 +43,11 @@ public class BasicBinaryContentService implements BinaryContentService {
     binaryContentRepository.save(binaryContent);
 
     // 이벤트 발행 ( 바이너리 저장 로직 분리 )
-    eventPublisher.publishEvent(new BinaryContentCreatedEvent(binaryContent.getId(),bytes));
+    eventPublisher.publishEvent(new BinaryContentCreatedEvent(
+        binaryContent.getId(),
+        bytes,
+        fileName
+    ));
 
     log.info("[파일 생성 성공] fileName : {} ", fileName);
     return binaryContentMapper.toDto(binaryContent);
