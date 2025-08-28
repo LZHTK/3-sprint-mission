@@ -10,6 +10,11 @@ public enum ErrorCode {
     USER_NOT_FOUND("유저를 찾을 수 없습니다."),
     DUPLICATE_EMAIL("중복된 이메일입니다."),
     DUPLICATE_USERNAME("중복된 유저 이름입니다."),
+    USER_ROLE_UPDATE_FAILED("사용자 권한 업데이트에 실패하였습니다."),
+    USER_ACCESS_DENIED("해당 사용자에 대한 접근 권한이 없습니다."),
+
+    /* 시스템 에러 */
+    INTERNAL_SERVER_ERROR("서버 내부 오류가 발상했습니다."),
 
     /* Channel 관련 에러 */
     CHANNEL_NOT_FOUND("채널을 찾을 수 없습니다."),
@@ -24,6 +29,7 @@ public enum ErrorCode {
     INVAILD_TOKEN("유효하지 않은 토큰입니다."),
     EXPIRED_TOKEN("만료된 토큰입니다."),
     INVAILD_REFRESH_TOKEN("유효하지 않은 리프레시 토큰입니다."),
+    REFRESH_TOKEN_NOT_FOUND("리프레시 토큰을 찾을 수 없습니다."),
 
     /* BinaryContent 관련 에러 */
     BINARYCONTENT_NOT_FOUND("파일을 찾을 수 없습니다."),

@@ -1,6 +1,8 @@
 package com.sprint.mission.discodeit.exception;
 
 import com.sprint.mission.discodeit.exception.auth.AuthException;
+import com.sprint.mission.discodeit.exception.auth.InvalidRefreshTokenException;
+import com.sprint.mission.discodeit.exception.auth.RefreshTokenNotFoundException;
 import com.sprint.mission.discodeit.exception.binarycontent.BinaryContentException;
 import com.sprint.mission.discodeit.exception.channel.ChannelNotFoundException;
 import com.sprint.mission.discodeit.exception.channel.PrivateChannelUpdateNotAllowedException;
@@ -184,7 +186,6 @@ public class GlobalExceptionHandler {
         .body(errorResponse);
   }
 
-
   /** 알림 관련 Error
    * 15.Notification Access Denied Exception
    * */
@@ -197,8 +198,19 @@ public class GlobalExceptionHandler {
   }
 
 
+  /** Refresh Token 관련 에러
+   *  16. InvalidRefreshTokenException & RefreshTokenNotFoundException
+   * */
+  @ExceptionHandler({InvalidRefreshTokenException.class, RefreshTokenNotFoundException.class})
+  public ResponseEntity<ErrorResponse> handleRefreshTokenException(DiscodeitException e) {
+    ErrorResponse errorResponse = new ErrorResponse(HttpStatus.UNAUTHORIZED, e.getErrorCode());
+    return ResponseEntity
+        .status(HttpStatus.UNAUTHORIZED)
+        .body(errorResponse);
+  }
+
   /**
-   *  16. 예상치 못한 에러 관련
+   *  17. 예상치 못한 에러 관련
    * */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<String> handleException(Exception e) {
