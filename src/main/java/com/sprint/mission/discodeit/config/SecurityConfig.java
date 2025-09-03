@@ -86,6 +86,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login").permitAll()     // 로그인
                 .requestMatchers("/api/auth/logout").permitAll()    // 로그아웃
                 .requestMatchers("/api/auth/refresh").permitAll()
+                .requestMatchers("/ws/**").permitAll()
 
                 // 테스트용 - 캐시 테스트 엔드포인트 허용
                 .requestMatchers("/api/test/cache/**").permitAll()
