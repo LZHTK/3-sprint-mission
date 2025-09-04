@@ -6,11 +6,13 @@ import com.sprint.mission.discodeit.entity.ReadStatus;
 import com.sprint.mission.discodeit.event.MessageCreateEvent;
 import com.sprint.mission.discodeit.event.RoleUpdatedEvent;
 import com.sprint.mission.discodeit.event.S3UploadFailedEvent;
+import com.sprint.mission.discodeit.event.message.UserLogInOutEvent;
 import com.sprint.mission.discodeit.repository.ReadStatusRepository;
 import com.sprint.mission.discodeit.service.NotificationService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +24,7 @@ public class NotificationRequiredTopicListener {
     private final NotificationService notificationService;
     private final ReadStatusRepository readStatusRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @KafkaListener(topics = "discodeit.MessageCreateEvent")
     public void onMessageCreateEvent(String kafkaEvent) {
@@ -92,6 +95,26 @@ public class NotificationRequiredTopicListener {
         } catch (JsonProcessingException e) {
             log.error("Kafka S3 업로드 실패 이벤트 파싱 실패 : {}",e.getMessage());
             throw new RuntimeException(e);
+        }
+    }
+
+    @KafkaListener(topics = "discodeit.UserLogInOutEvent")
+    public void onUserLogInOutEvent(String kafkaEvent) {
+        try {
+            UserLogInOutEvent event = objectMapper.readValue(kafkaEvent, UserLogInOutEvent.class);
+
+            log.info("[Kafka Consumer] 사용자 로그인/로그아웃 이벤트 수신 - 스레드: {}, 사용자: {}, 로그인: {}",
+                Thread.currentThread().getName(), event.userId(), event.isLoggedIn());
+
+            // 로컬 이벤트로 재발행하여 WebSocket 등에서 처리할 수 있도록 함
+            eventPublisher.publishEvent(event);
+
+            log.info("[Kafka Consumer] 사용자 로그인/로그아웃 이벤트 처리 완료 - 사용자: {}", event.userId());
+        } catch (JsonProcessingException e) {
+            log.error("[Kafka Consumer] 사용자 로그인/로그아웃 이벤트 파싱 실패: {}", e.getMessage());
+            throw new RuntimeException(e);
+        } catch (Exception e) {
+            log.error("[Kafka Consumer] 예상치 못한 오류: {}", e.getMessage(), e);
         }
     }
 }
