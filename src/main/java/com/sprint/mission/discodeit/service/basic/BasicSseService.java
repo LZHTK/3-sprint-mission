@@ -1,6 +1,5 @@
 package com.sprint.mission.discodeit.service.basic;
 
-
 import com.sprint.mission.discodeit.dto.data.SseMessage;
 import com.sprint.mission.discodeit.repository.SseEmitterRepository;
 import com.sprint.mission.discodeit.repository.SseMessageRepository;
@@ -24,13 +23,14 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(name = "app.sse.type", havingValue = "basic", matchIfMissing = false)
+@ConditionalOnProperty(name = "app.sse.type", havingValue = "basic", matchIfMissing = true)
 public class BasicSseService implements SseService {
 
     private final SseEmitterRepository sseEmitterRepository;
     private final SseMessageRepository sseMessageRepository;
 
-    private static final long DEFAULT_TIMEOUT = 60L * 1000 * 60;
+    // 타임아웃을 더 길게 설정
+    private static final long DEFAULT_TIMEOUT = 120L * 1000 * 60;
 
     @Override
     public SseEmitter connect(UUID receiverId, UUID lastEventId) {
@@ -40,12 +40,28 @@ public class BasicSseService implements SseService {
         sseEmitterRepository.save(receiverId, sseEmitter);
 
         // 연결 완료/에러/타임아웃 시 정리
-        sseEmitter.onCompletion(() -> sseEmitterRepository.delete(receiverId, sseEmitter));
-        sseEmitter.onTimeout(() -> sseEmitterRepository.delete(receiverId, sseEmitter));
-        sseEmitter.onError(throwable -> sseEmitterRepository.delete(receiverId, sseEmitter));
+        sseEmitter.onCompletion(() -> {
+            sseEmitterRepository.delete(receiverId, sseEmitter);
+            log.debug("SSE 연결 완료됨 : receiverId = {}", receiverId);
+        });
+        sseEmitter.onTimeout(() -> {
+            sseEmitterRepository.delete(receiverId, sseEmitter);
+            log.debug("SSE 연결 타임아웃 : receiverId = {}", receiverId);
+        });
+        sseEmitter.onError(throwable -> {
+            sseEmitterRepository.delete(receiverId, sseEmitter);
+            log.debug("SSE 연결 에러 : receiverId = {}", receiverId);
+        });
 
         // 초기 연결 확인을 위한 ping 전송
-        if (!ping(sseEmitter)) {
+        try {
+            sseEmitter.send(SseEmitter.event()
+                .name("connected")
+                .data("연결 성공"));
+            log.info("SSE 연결 성공 : receiverId = {}", receiverId);
+        } catch (IOException e) {
+            log.error("SSE 초기 연결 실패 : receiverId = {}", receiverId);
+            sseEmitterRepository.delete(receiverId, sseEmitter);
             return sseEmitter;
         }
 
@@ -65,7 +81,6 @@ public class BasicSseService implements SseService {
             }
         }
 
-        log.info("SSE 연결 성공 : receiverId = {}", receiverId);
         return sseEmitter;
     }
 
@@ -119,15 +134,24 @@ public class BasicSseService implements SseService {
         log.info("SSE 브로드캐스트 완료 : eventName = {}", eventName);
     }
 
-    @Scheduled(fixedDelay = 1000 * 60 * 30)
+    // ping 주기를 더 자주
+    @Scheduled(fixedDelay = 1000 * 60 * 15)
     public void cleanUp() {
-        log.info("SSE 연결 정리 시작");
+        log.debug("SSE 연결 정리 시작");
 
         sseEmitterRepository.findAll().forEach((receiverId, emitters) -> {
             emitters.removeIf(emitter -> !ping(emitter));
         });
 
-        log.info("SSE 연결 정리 완료");
+        log.debug("SSE 연결 정리 완료");
+    }
+
+    // heartbeat를 더 자주 전송
+    @Scheduled(fixedDelay = 1000 * 30) // 30초마다
+    public void sendHeartbeat() {
+        sseEmitterRepository.findAll().forEach((receiverId, emitters) -> {
+            emitters.removeIf(emitter -> !sendHeartbeat(emitter));
+        });
     }
 
     private boolean ping(SseEmitter sseEmitter) {
@@ -135,6 +159,17 @@ public class BasicSseService implements SseService {
             sseEmitter.send(SseEmitter.event()
                 .name("ping")
                 .data("ping"));
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private boolean sendHeartbeat(SseEmitter sseEmitter) {
+        try {
+            sseEmitter.send(SseEmitter.event()
+                .name("heartbeat")
+                .data("하트"));
             return true;
         } catch (IOException e) {
             return false;

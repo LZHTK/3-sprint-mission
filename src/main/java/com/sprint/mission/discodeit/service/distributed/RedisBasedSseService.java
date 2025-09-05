@@ -24,7 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.sse.type", havingValue = "redis", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.sse.type", havingValue = "redis", matchIfMissing = false)
 public class RedisBasedSseService implements SseService {
 
     private final RedisTemplate<String, Object> redisTemplate;
