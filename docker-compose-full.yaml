@@ -46,6 +46,7 @@ services:
       # App Settings
       APP_JWT_REGISTRY_TYPE: redis
       APP_MESSAGING_TYPE: kafka
+      APP_SSE_TYPE: redis
 
       # Server
       SERVER_PORT: 8080
@@ -57,7 +58,7 @@ services:
       # JVM
       JVM_OPTS: ${JVM_OPTS:--Xmx512m}
     volumes:
-      - backend_storage_1:/app/.discodeit/storage
+      - shared_backend_storage:/app/.discodeit/storage
     networks:
       - discodeit-network
     depends_on:
@@ -98,6 +99,7 @@ services:
       # App Settings
       APP_JWT_REGISTRY_TYPE: redis
       APP_MESSAGING_TYPE: kafka
+      APP_SSE_TYPE: redis
 
       # Server
       SERVER_PORT: 8080
@@ -109,7 +111,7 @@ services:
       # JVM
       JVM_OPTS: ${JVM_OPTS:--Xmx512m}
     volumes:
-      - backend_storage_2:/app/.discodeit/storage
+      - shared_backend_storage:/app/.discodeit/storage
     networks:
       - discodeit-network
     depends_on:
@@ -150,6 +152,7 @@ services:
       # App Settings
       APP_JWT_REGISTRY_TYPE: redis
       APP_MESSAGING_TYPE: kafka
+      APP_SSE_TYPE: redis
 
       # Server
       SERVER_PORT: 8080
@@ -161,7 +164,7 @@ services:
       # JVM
       JVM_OPTS: ${JVM_OPTS:--Xmx512m}
     volumes:
-      - backend_storage_3:/app/.discodeit/storage
+      - shared_backend_storage:/app/.discodeit/storage
     networks:
       - discodeit-network
     depends_on:
@@ -183,26 +186,30 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-discodeit}
       POSTGRES_USER: ${POSTGRES_USER:-discodeit}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-discodeit123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
       TZ: Asia/Seoul
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     networks:
       - discodeit-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-discodeit} -d ${POSTGRES_DB:-discodeit}"]
       interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
-    expose:
-      - "5432"
+    ports:
+      - "5432:5432"
 
   # Redis Memory Database
   redis:
     image: redis:7-alpine
     container_name: discodeit-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
     networks:
       - discodeit-network
     healthcheck:
@@ -212,8 +219,8 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
-    expose:
-      - "6379"
+    ports:
+      - "6379:6379"
 
   # Kafka Message Broker
   broker:
@@ -247,11 +254,9 @@ services:
 volumes:
   postgres_data:
     driver: local
-  backend_storage_1:
+  redis_data:
     driver: local
-  backend_storage_2:
-    driver: local
-  backend_storage_3:
+  shared_backend_storage:
     driver: local
 
 networks:

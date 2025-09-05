@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .ignoringRequestMatchers("/api/test/cache/**")
                 // SSE 엔드포인트 CSRF 제외 ( EventSource에서 CSRF 헤더 전송 불가 )
                 .ignoringRequestMatchers("/api/sse")
+                .ignoringRequestMatchers("/api/binaryContents/*/download")
             )
             .formLogin(login -> login
                 .loginProcessingUrl("/api/auth/login")
@@ -79,6 +80,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login").permitAll()     // 로그인
                 .requestMatchers("/api/auth/logout").permitAll()    // 로그아웃
                 .requestMatchers("/api/auth/refresh").permitAll()
+                .requestMatchers("/api/binaryContents/**").permitAll()
+                .requestMatchers("/api/sse").permitAll()
                 .requestMatchers("/ws/**").permitAll()
 
                 // 테스트용 - 캐시 테스트 엔드포인트 허용

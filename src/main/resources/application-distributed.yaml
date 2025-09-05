@@ -16,6 +16,8 @@ app:
     max-active-count: 3
   messaging:
     type: ${APP_MESSAGING_TYPE:kafka}    # 분산 메시징을 위해 Kafka 사용
+  sse:
+    type: ${APP_SSE_TYPE:redis}
 
 logging:
   level:
