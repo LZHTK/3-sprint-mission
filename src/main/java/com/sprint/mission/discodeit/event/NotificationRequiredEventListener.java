@@ -18,7 +18,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(name = "app.messaging.type", havingValue = "local", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.messaging.type", havingValue = "local", matchIfMissing = false)
 public class NotificationRequiredEventListener {
 
     private final NotificationService notificationService;

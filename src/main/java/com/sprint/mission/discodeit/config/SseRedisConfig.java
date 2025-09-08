@@ -16,7 +16,7 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 @Configuration
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(name = "app.sse.type", havingValue = "redis", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.sse.type", havingValue = "redis", matchIfMissing = false)
 public class SseRedisConfig {
 
     private final ObjectMapper objectMapper;

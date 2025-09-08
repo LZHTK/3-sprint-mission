@@ -23,7 +23,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(name = "app.sse.type", havingValue = "basic", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.sse.type", havingValue = "basic", matchIfMissing = false)
 public class BasicSseService implements SseService {
 
     private final SseEmitterRepository sseEmitterRepository;

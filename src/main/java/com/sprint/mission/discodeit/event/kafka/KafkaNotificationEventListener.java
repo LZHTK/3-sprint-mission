@@ -31,7 +31,7 @@ public class KafkaNotificationEventListener {
 
     @KafkaListener(
         topics = "discodeit.MessageCreateEvent",
-        groupId = "notification-group-${server.instance-id:#{T(java.util.UUID).randomUUID().toString()}}"
+        groupId = "notification-group-${server.instance-id:default}"
     )
     public void handleMessageCreateEvent(String kafkaEvent) {
         try {
@@ -51,6 +51,7 @@ public class KafkaNotificationEventListener {
                         event.content()
                     );
 
+                    //  Redis 기반 SSE로 전송 - 모든 인스턴스에 전파됨
                     sseService.send(
                         List.of(readStatus.getUser().getId()),
                         "notifications.new",
@@ -68,7 +69,7 @@ public class KafkaNotificationEventListener {
 
     @KafkaListener(
         topics = "discodeit.RoleUpdatedEvent",
-        groupId = "role-notification-group-${server.instance-id:#{T(java.util.UUID).randomUUID().toString()}}"
+        groupId = "role-notification-group-${server.instance-id:default}"
     )
     public void handleRoleUpdatedEvent(String kafkaEvent) {
         try {
