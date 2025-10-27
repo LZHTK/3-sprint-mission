@@ -84,6 +84,11 @@ discodeit:
       bucket: ${AWS_S3_BUCKET}
       presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:600} # 기본값: 10분
 
+# SSE 설정 추가
+app:
+  sse:
+    type: ${SSE_TYPE:basic}  # basic | redis (기본값: basic)
+
 jwt:
   secret: ${JWT_SECRET:myVerySecureSecretKeyForJWTTokenGenerationThatShouldBeVeryLongAndSecure}
   expiration-minutes: 60      # 액세스 토큰 만료 시간 (분)
