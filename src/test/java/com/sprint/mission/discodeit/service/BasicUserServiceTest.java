@@ -3,6 +3,8 @@ package com.sprint.mission.discodeit.service;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willDoNothing;
@@ -17,6 +19,7 @@ import com.sprint.mission.discodeit.exception.user.UserEmailAlreadyExistsExcepti
 import com.sprint.mission.discodeit.exception.user.UserNameAlreadyExistsException;
 import com.sprint.mission.discodeit.exception.user.UserNotFoundException;
 import com.sprint.mission.discodeit.mapper.UserMapper;
+import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.service.basic.BasicUserService;
 import java.time.Instant;
@@ -29,20 +32,25 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.CacheManager;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserService 단위 테스트")
 public class BasicUserServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private UserMapper userMapper;
+    @Mock private UserRepository userRepository;
+    @Mock private UserMapper userMapper;
+    @Mock private BinaryContentRepository binaryContentRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private UserSessionService userSessionService;
+    @Mock private CacheManager cacheManager;
+    @Mock private SseService sseService;
 
     @InjectMocks
     private BasicUserService userService;
-
 
     @Test
     @DisplayName("User 생성 -  case : success")
@@ -55,7 +63,8 @@ public class BasicUserServiceTest {
         given(userRepository.existsByUsername(userCreateRequest.username())).willReturn(false);
         given(userRepository.existsByEmail(userCreateRequest.email())).willReturn(false);
         given(userRepository.save(any(User.class))).willReturn(user);
-        given(userMapper.toDto(any(User.class))).willReturn(userDto);
+        given(passwordEncoder.encode(any())).willReturn("encoded");
+        given(userMapper.toDto(any(User.class), eq(false))).willReturn(userDto);
 
         // When
         UserDto result = userService.create(userCreateRequest, Optional.empty());
@@ -90,9 +99,10 @@ public class BasicUserServiceTest {
         UUID userId = UUID.randomUUID();
         User user = new User("KHG", "KHG@test.com", "009874", null);
         UserDto expectedDto = new UserDto(userId, "KHG", "KHG@test.com", Role.USER
-            , null, true);
+            , null, false);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(userMapper.toDto(user)).willReturn(expectedDto);
+        given(userMapper.toDto(user, false)).willReturn(expectedDto);
+        given(userSessionService.isUserOnline(any())).willReturn(false);
 
         // When
         UserDto result = userService.find(userId);
@@ -129,15 +139,13 @@ public class BasicUserServiceTest {
             , null, true);
         given(userRepository.findById(userId)).willReturn(Optional.of(existingUser));
         given(userRepository.existsByUsername(userUpdateRequest.newUsername())).willReturn(false);
-        given(userMapper.toDto(existingUser)).willReturn(expectedDto);
+        given(userMapper.toDto(eq(existingUser), anyBoolean())).willReturn(expectedDto);
 
         // When
         UserDto result = userService.update(userId, userUpdateRequest, Optional.empty());
 
         // Then
-        assertThat(result.username()).isEqualTo(userUpdateRequest.newUsername());
-        assertThat(result.email()).isEqualTo(userUpdateRequest.newEmail());
-        assertThat(result.online()).isTrue();
+        assertThat(result).isEqualTo(expectedDto);
     }
 
     @Test
@@ -162,15 +170,26 @@ public class BasicUserServiceTest {
     @Test
     @DisplayName("User 삭제 - case : success")
     void deleteUserSuccess() {
-        // Given
+        // given
         UUID userId = UUID.randomUUID();
+        User user = new User("test", "test@test.com", "009874", null);
+        UserDto dto = new UserDto(userId, "test", "test@test.com", Role.USER, null, false);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(userSessionService.isUserOnline(userId)).willReturn(false);
+        given(userMapper.toDto(user, false)).willReturn(dto);
         given(userRepository.existsById(userId)).willReturn(true);
+
+        willDoNothing().given(userSessionService).markUserOffline(userId);
+        willDoNothing().given(sseService).broadcast(eq("users.deleted"), any());
         willDoNothing().given(userRepository).deleteById(userId);
 
-        // When
+        // when
         userService.delete(userId);
 
-        // Then
+        // then
+        then(userRepository).should().findById(userId);
+        then(userSessionService).should().markUserOffline(userId);
         then(userRepository).should().deleteById(userId);
     }
 
@@ -179,13 +198,10 @@ public class BasicUserServiceTest {
     void deleteUserFail() {
         // Given
         UUID userId = UUID.randomUUID();
-        given(userRepository.existsById(userId)).willReturn(false);
+        given(userRepository.findById(userId)).willReturn(Optional.empty());
 
-        // When
-        ThrowingCallable when = () -> userService.delete(userId);
-
-        // Then
-        assertThatThrownBy(when)
+        // When&Then
+        assertThatThrownBy(() -> userService.delete(userId))
             .isInstanceOf(UserNotFoundException.class)
             .hasMessageContaining("유저를 찾을 수 없습니다.");
 

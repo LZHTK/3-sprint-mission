@@ -8,7 +8,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import static org.hamcrest.Matchers.hasItems;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.mission.discodeit.dto.data.UserDto;
 import com.sprint.mission.discodeit.dto.request.UserCreateRequest;
@@ -70,6 +72,7 @@ public class UserIntegrationTest {
         ResultActions createResult = mockMvc.perform(multipart("/api/users")
             .file(jsonPart)
             .file(profile)
+            .with(csrf())
             .with(req -> {
                 req.setMethod("POST");
                 return req;
@@ -100,6 +103,7 @@ public class UserIntegrationTest {
         ResultActions result = mockMvc.perform(multipart("/api/users")
             .file(jsonPart)
             .contentType(MediaType.MULTIPART_FORM_DATA_VALUE)
+            .with(csrf())
             .with(req -> {
                 req.setMethod("POST");
                 return req;
@@ -120,7 +124,7 @@ public class UserIntegrationTest {
 
         // 해당 사용자로 인증된 상태로 만들기
         UserDto userDto = new UserDto(userId, "김현기", "test@test.com", Role.USER, null,true);
-        DiscodeitUserDetails userDetails = new DiscodeitUserDetails(userDto, "009874");
+        DiscodeitUserDetails userDetails = new DiscodeitUserDetails(userDto, "009874", user);
 
         UserUpdateRequest updateRequest = new UserUpdateRequest("테스트맨","test2@test.com",null);
         MockMultipartFile jsonPart = new MockMultipartFile(
@@ -134,6 +138,7 @@ public class UserIntegrationTest {
         ResultActions result = mockMvc.perform(multipart("/api/users/{userId}", userId)
             .file(jsonPart)
             .with(user(userDetails)) // 본인으로 인증
+            .with(csrf())
             .with(req -> {
                 req.setMethod("PATCH");
                 return req;
@@ -157,7 +162,7 @@ public class UserIntegrationTest {
 
         // user1로 인증하지만 user2의 정보를 수정 시도
         UserDto userDto = new UserDto(user1.getId(), "김현기", "test@test.com", Role.USER,null,true);
-        DiscodeitUserDetails userDetails = new DiscodeitUserDetails(userDto, "009874");
+        DiscodeitUserDetails userDetails = new DiscodeitUserDetails(userDto, "009874", user1);
 
         UserUpdateRequest updateRequest = new UserUpdateRequest("해커맨","hacker@test.com",null);
         MockMultipartFile jsonPart = new MockMultipartFile(
@@ -171,6 +176,7 @@ public class UserIntegrationTest {
         ResultActions result = mockMvc.perform(multipart("/api/users/{userId}", user2.getId())
             .file(jsonPart)
             .with(user(userDetails)) // user1로 인증했지만 user2 수정 시도
+            .with(csrf())
             .with(req -> {
                 req.setMethod("PATCH");
                 return req;
@@ -199,9 +205,8 @@ public class UserIntegrationTest {
 
         // Then
         result.andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[0].username").value("김현기"))
-            .andExpect(jsonPath("$[1].username").value("테스트맨"));
+            .andExpect(jsonPath("$.length()").value(3))                       // admin 포함 3명
+            .andExpect(jsonPath("$[*].username", hasItems("김현기", "테스트맨")));
     }
 
     @Test
@@ -214,11 +219,12 @@ public class UserIntegrationTest {
 
         // 해당 사용자로 인증된 상태로 만들기
         UserDto userDto = new UserDto(userId, "testMan", "test3@test.com", Role.USER,null,true);
-        DiscodeitUserDetails userDetails = new DiscodeitUserDetails(userDto, "12345");
+        DiscodeitUserDetails userDetails = new DiscodeitUserDetails(userDto, "12345",user);
 
         // When - 본인 계정 삭제
         mockMvc.perform(delete("/api/users/" + userId)
-                .with(user(userDetails))) // 본인으로 인증
+                .with(user(userDetails))
+                .with(csrf())) // 본인으로 인증
             .andExpect(status().isNoContent());
 
         // Then - 삭제 확인 (사용자가 존재하지 않아야 함)
@@ -237,11 +243,12 @@ public class UserIntegrationTest {
 
         // user1로 인증하지만 user2를 삭제 시도
         UserDto userDto = new UserDto(user1.getId(), "김현기", "test@test.com", Role.USER,null,true);
-        DiscodeitUserDetails userDetails = new DiscodeitUserDetails(userDto, "009874");
+        DiscodeitUserDetails userDetails = new DiscodeitUserDetails(userDto, "009874", user1);
 
         // When - 다른 사용자 삭제 시도
         ResultActions result = mockMvc.perform(delete("/api/users/" + user2.getId())
-            .with(user(userDetails))); // user1로 인증했지만 user2 삭제 시도
+            .with(user(userDetails))
+            .with(csrf())); // user1로 인증했지만 user2 삭제 시도
 
         // Then - 권한 없음 오류
         result.andExpect(status().isForbidden());
