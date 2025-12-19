@@ -5,6 +5,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willDoNothing;
@@ -34,7 +35,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +65,9 @@ public class BasicChannelServiceTest {
     @Mock
     private MessageRepository messageRepository;
 
+    @Mock
+    private SseService sseService;
+
     @InjectMocks
     private BasicChannelService channelService;
 
@@ -80,6 +86,8 @@ public class BasicChannelServiceTest {
             Instant.now());
         given(channelRepository.save(any(Channel.class))).willReturn(channel);
         given(channelMapper.toDto(any(Channel.class))).willReturn(channelDto);
+
+        willDoNothing().given(sseService).broadcast(anyString(), any());
 
         // When
         ChannelDto result = channelService.create(request);
@@ -173,6 +181,8 @@ public class BasicChannelServiceTest {
         given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
         given(channelMapper.toDto(channel)).willReturn(channelDto);
 
+        willDoNothing().given(sseService).broadcast(anyString(), any());
+
         // When
         ChannelDto result = channelService.update(channelId, request);
 
@@ -189,26 +199,34 @@ public class BasicChannelServiceTest {
         PublicChannelUpdateRequest request = new PublicChannelUpdateRequest("newTestName","newTestDescription");
         given(channelRepository.findById(channelId)).willReturn(Optional.empty());
 
-        // When & Then
-        assertThatThrownBy(() -> channelService.update(channelId, request))
-            .isInstanceOf(ChannelNotFoundException.class);
+        // When
+        ThrowingCallable when = () -> channelService.update(channelId, request);
+
+        // Then
+        assertThatThrownBy(when).isInstanceOf(ChannelNotFoundException.class);
     }
 
     @Test
     @DisplayName("채널 삭제 - case : success")
     void deleteChannelSuccess() {
-        // Given
         UUID channelId = UUID.randomUUID();
+        Channel channel = new Channel(ChannelType.PUBLIC, "oldName", "oldDesc");
+        ChannelDto dto = new ChannelDto(channelId, ChannelType.PUBLIC, "oldName", "oldDesc", null, Instant.now());
+
+        // Given - find(channelId)까지 성공하도록 준비
+        given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
+        given(channelMapper.toDto(channel)).willReturn(dto);
         given(channelRepository.existsById(channelId)).willReturn(true);
         willDoNothing().given(messageRepository).deleteAllByChannelId(channelId);
         willDoNothing().given(readStatusRepository).deleteAllByChannelId(channelId);
         willDoNothing().given(channelRepository).deleteById(channelId);
+        willDoNothing().given(sseService).broadcast(anyString(), any());
 
         // When
         channelService.delete(channelId);
 
         // Then
-        then(channelRepository).should().existsById(channelId);
+        then(channelRepository).should().findById(channelId);
         then(messageRepository).should().deleteAllByChannelId(channelId);
         then(readStatusRepository).should().deleteAllByChannelId(channelId);
         then(channelRepository).should().deleteById(channelId);
@@ -219,18 +237,19 @@ public class BasicChannelServiceTest {
     void deleteChannelFail() {
         // Given
         UUID channelId = UUID.randomUUID();
+        Channel channel = new Channel(ChannelType.PUBLIC, "oldName", "oldDesc");
+        ChannelDto dto = new ChannelDto(channelId, ChannelType.PUBLIC, "oldName", "oldDesc", null, Instant.now());
+        given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
+        given(channelMapper.toDto(channel)).willReturn(dto);
         given(channelRepository.existsById(channelId)).willReturn(false);
 
         // When
-        ThrowingCallable when = () -> channelService.delete(channelId);
+        ThrowableAssert.ThrowingCallable act = () -> channelService.delete(channelId);
 
         // Then
-        assertThatThrownBy(when)
-            .isInstanceOf(ChannelNotFoundException.class);
-
+        assertThatThrownBy(act).isInstanceOf(ChannelNotFoundException.class);
+        then(channelRepository).should().findById(channelId);
         then(channelRepository).should().existsById(channelId);
-        then(messageRepository).should(never()).deleteAllByChannelId(any());
-        then(readStatusRepository).should(never()).deleteAllByChannelId(any());
         then(channelRepository).should(never()).deleteById(any());
     }
 

@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -22,6 +23,8 @@ import com.sprint.mission.discodeit.entity.Channel;
 import com.sprint.mission.discodeit.entity.ChannelType;
 import com.sprint.mission.discodeit.entity.Message;
 import com.sprint.mission.discodeit.entity.User;
+import com.sprint.mission.discodeit.event.BinaryContentCreatedEvent;
+import com.sprint.mission.discodeit.event.MessageCreateEvent;
 import com.sprint.mission.discodeit.exception.channel.ChannelNotFoundException;
 import com.sprint.mission.discodeit.exception.message.MessageNotFoundException;
 import com.sprint.mission.discodeit.mapper.MessageMapper;
@@ -43,6 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -74,6 +78,9 @@ public class BasicMessageServiceTest {
     @Mock
     private PageResponseMapper pageResponseMapper;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     private BasicMessageService messageService;
 
@@ -86,32 +93,25 @@ public class BasicMessageServiceTest {
         MessageCreateRequest request = new MessageCreateRequest("test", channelId, authorId);
         Channel channel = new Channel(ChannelType.PUBLIC,"TestChannel","TestChannel Description");
         User author = new User("testUser", "test@test.com","009874",null);
-        BinaryContentCreateRequest file = new BinaryContentCreateRequest("file.txt","txt/plain","파일 내용".getBytes());
-        BinaryContent savedFile = new BinaryContent(file.fileName(), (long) file.bytes().length, file.contentType());
+        BinaryContentCreateRequest file =
+            new BinaryContentCreateRequest("file.txt","text/plain","파일 내용".getBytes());
+        MessageDto messageDto = new MessageDto(UUID.randomUUID(), Instant.now(), null, "test", null, null, null);
         given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
         given(userRepository.findById(authorId)).willReturn(Optional.of(author));
-        given(binaryContentRepository.save(any())).willReturn(savedFile);
-        UUID messageId = UUID.randomUUID();
-        MessageDto messageDto = new MessageDto(
-            messageId,
-            Instant.now(),
-            null,
-            "test",
-            null,
-            null,
-            null);
-        given(messageMapper.toDto(any())).willReturn(messageDto);
+        given(messageMapper.toDto(any(Message.class))).willReturn(messageDto);
 
         // When
         MessageDto result = messageService.create(request, List.of(file));
 
         // Then
-        assertThat(result).isNotNull();
         assertThat(result.content()).isEqualTo("test");
         then(channelRepository).should().findById(channelId);
         then(userRepository).should().findById(authorId);
-        then(messageRepository).should().save(any());
-        then(messageMapper).should().toDto(any());
+        then(binaryContentRepository).should().save(any(BinaryContent.class));
+        then(messageRepository).should().save(any(Message.class));
+        then(messageMapper).should().toDto(any(Message.class));
+        then(eventPublisher).should().publishEvent(any(BinaryContentCreatedEvent.class));
+        then(eventPublisher).should().publishEvent(any(MessageCreateEvent.class));
     }
 
     @Test

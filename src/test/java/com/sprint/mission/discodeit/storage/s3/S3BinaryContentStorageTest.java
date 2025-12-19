@@ -3,6 +3,8 @@ package com.sprint.mission.discodeit.storage.s3;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.sprint.mission.discodeit.dto.data.BinaryContentDto;
+import com.sprint.mission.discodeit.entity.BinaryContentStatus;
+import com.sprint.mission.discodeit.repository.NotificationRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -30,6 +32,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.core.ResponseInputStream;
 import java.io.ByteArrayInputStream;
+import org.mockito.Mockito;
 
 
 @Testcontainers
@@ -40,6 +43,7 @@ public class S3BinaryContentStorageTest {
         .withServices(LocalStackContainer.Service.S3);
 
     private TestS3BinaryContentStorage storage;
+    private final NotificationRepository notificationRepository = Mockito.mock(NotificationRepository.class);
     private static final String BUCKET_NAME = "test-bucket";
     private static final String ACCESS_KEY = "test";
     private static final String SECRET_KEY = "test";
@@ -62,7 +66,8 @@ public class S3BinaryContentStorageTest {
         // 테스트용 Storage 생성 (LocalStack 엔드포인트 사용)
         storage = new TestS3BinaryContentStorage(
             ACCESS_KEY, SECRET_KEY, REGION, BUCKET_NAME, 600,
-            localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString()
+            localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString(),
+            notificationRepository
         );
     }
 
@@ -74,8 +79,10 @@ public class S3BinaryContentStorageTest {
         private final String endpointOverride;
 
         public TestS3BinaryContentStorage(String accessKey, String secretKey, String region,
-            String bucket, int presignedUrlExpiration, String endpointOverride) {
-            super(accessKey, secretKey, region, bucket, presignedUrlExpiration);
+            String bucket, int presignedUrlExpiration, String endpointOverride,
+            NotificationRepository notificationRepository) {
+            super(accessKey, secretKey, region, bucket, presignedUrlExpiration,
+                notificationRepository);
             this.endpointOverride = endpointOverride;
         }
 
@@ -222,7 +229,8 @@ public class S3BinaryContentStorageTest {
             binaryContentId,
             "test-file.txt",
             (long) testData.length,
-            "text/plain"
+            "text/plain",
+            BinaryContentStatus.SUCCESS
         );
 
         // When

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.mission.discodeit.dto.request.MessageCreateRequest;
@@ -30,6 +31,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.test.context.support.WithMockUser;
 
 @SpringBootTest
 @Transactional
@@ -55,6 +57,7 @@ public class MessageIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "tester", roles = "USER")
     @DisplayName("메시지 생성 - case : success")
     void createMessageSuccess() throws Exception {
         // Given
@@ -78,6 +81,7 @@ public class MessageIntegrationTest {
         ResultActions result = mockMvc.perform(multipart("/api/messages")
             .file(jsonPart)
             .file(attachment)
+            .with(csrf())
             .with(req -> {
                 req.setMethod("POST"); // multipart 기본은 GET이므로 POST로 명시
                 return req;
@@ -93,6 +97,7 @@ public class MessageIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = "tester", roles = "USER")
     @DisplayName("메시지 생성 - case : 잘못된 요청으로 인한 failed")
     void createMessageFail() throws Exception {
         // Given
@@ -109,6 +114,7 @@ public class MessageIntegrationTest {
         // When
         ResultActions result = mockMvc.perform(multipart("/api/messages")
             .file(message)
+            .with(csrf())
             .with(req -> {
                 req.setMethod("POST");
                 return req;
@@ -121,6 +127,7 @@ public class MessageIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "tester", roles = "USER")
     @DisplayName("메시지 조회 - case : success")
     void readMessageSuccess() throws Exception {
         // Given
@@ -146,6 +153,7 @@ public class MessageIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "admin", roles = "ADMIN")
     @DisplayName("메시지 수정 - case : success")
     void updateMessageSuccess() throws Exception {
         // Given
@@ -156,6 +164,7 @@ public class MessageIntegrationTest {
 
         // When
         ResultActions result = mockMvc.perform(patch("/api/messages/{messageId}", message.getId())
+            .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request))
         );
@@ -167,6 +176,7 @@ public class MessageIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "admin", roles = "ADMIN")
     @DisplayName("메시지 삭제 - case : success")
     void deleteMessageSuccess() throws Exception {
         // Given
@@ -175,7 +185,8 @@ public class MessageIntegrationTest {
         Message message = messageRepository.save(new Message("test",channel,user,null));
 
         // When
-        ResultActions result = mockMvc.perform(delete("/api/messages/{messageId}", message.getId()));
+        ResultActions result = mockMvc.perform(delete("/api/messages/{messageId}", message.getId())
+            .with(csrf()));
 
         // Then
         result.andExpect(status().isNoContent());
