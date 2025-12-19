@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.mission.discodeit.dto.request.PrivateChannelCreateRequest;
@@ -29,6 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.test.context.support.WithMockUser;
 
 @SpringBootTest
 @Transactional
@@ -51,6 +53,7 @@ public class ChannelIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "manager", roles = "CHANNEL_MANAGER")
     @DisplayName("Public 채널 생성 - case : success")
     void createPublicChannelSuccess() throws Exception {
         // Given
@@ -58,6 +61,7 @@ public class ChannelIntegrationTest {
 
         // When
         ResultActions result = mockMvc.perform(post("/api/channels/public")
+            .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request))
         );
@@ -69,6 +73,7 @@ public class ChannelIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "manager", roles = "CHANNEL_MANAGER")
     @DisplayName("Public 채널 생성 - case : 잘못된 채널 이름으로 인한 failed")
     void createPublicChannelFail() throws Exception {
         // Given
@@ -76,6 +81,7 @@ public class ChannelIntegrationTest {
 
         // When
         ResultActions result = mockMvc.perform(post("/api/channels/public")
+            .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request))
         );
@@ -86,6 +92,7 @@ public class ChannelIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "tester", roles = "USER")
     @DisplayName("Private 채널 생성 - case : success")
     void createPrivateChannelSuccess() throws Exception {
         // Given
@@ -96,6 +103,7 @@ public class ChannelIntegrationTest {
 
         // When
         ResultActions result = mockMvc.perform(post("/api/channels/private")
+            .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request))
         );
@@ -109,6 +117,7 @@ public class ChannelIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "manager", roles = "CHANNEL_MANAGER")
     @DisplayName("Public 채널 수정 - case : success")
     void updatePublicChannelSuccess() throws Exception {
         // Given
@@ -118,6 +127,7 @@ public class ChannelIntegrationTest {
 
         // When
         ResultActions result = mockMvc.perform(patch("/api/channels/{channelId}", channelId)
+            .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request))
         );
@@ -129,6 +139,7 @@ public class ChannelIntegrationTest {
 
     @Test
     @Transactional
+    @WithMockUser(username = "manager", roles = "CHANNEL_MANAGER")
     @DisplayName("Private 채널 삭제 - case : success")
     void deletePrivateChannelSuccess() throws Exception {
         // Given
@@ -136,7 +147,8 @@ public class ChannelIntegrationTest {
         UUID channelId = channel.getId();
 
         // When
-        ResultActions result = mockMvc.perform(delete("/api/channels/{channelId}", channelId));
+        ResultActions result = mockMvc.perform(delete("/api/channels/{channelId}", channelId)
+            .with(csrf()));
 
         // Then
         result.andExpect(status().isNoContent());
