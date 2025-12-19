@@ -3,6 +3,7 @@ package com.sprint.mission.discodeit.redis;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @RequiredArgsConstructor
 @Component
+@Profile("!test")
 public class RedisLockProvider {
 
     private static final Duration LOCK_TIMEOUT = Duration.ofSeconds(10);

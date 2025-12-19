@@ -6,6 +6,9 @@ on:
   push:
     branches: [ release ]
 
+env:
+  SPRING_PROFILES_ACTIVE: test
+
 jobs:
   test:
     runs-on: ubuntu-latest
