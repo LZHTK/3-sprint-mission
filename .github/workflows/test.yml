@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ main ]
   push:
-    branches: [ release ]
+    branches: [ main, release ]
 
 env:
   SPRING_PROFILES_ACTIVE: test
