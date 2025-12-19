@@ -1,3 +1,4 @@
-[![codecov](https://codecov.io/gh/LZHTK/3-sprint-mission/branch/release/graph/badge.svg)](https://codecov.io/gh/LZHTK/3-sprint-mission)
+[![codecov](https://codecov.io/gh/LZHTK/3-sprint-mission/branch/main/graph/badge.svg)](https://codecov.io/gh/LZHTK/3-sprint-mission)
+
 
 
