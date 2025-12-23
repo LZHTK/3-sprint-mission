@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -130,6 +131,33 @@ public class BasicMessageServiceTest {
         // Then
         assertThatThrownBy(when)
             .isInstanceOf(ChannelNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("파일 업로드 중 Storage 예외가 발생하면 저장을 중단한다")
+    void createMessage_파일업로드실패() {
+        // given
+        UUID channelId = UUID.randomUUID();
+        UUID authorId = UUID.randomUUID();
+        MessageCreateRequest request = new MessageCreateRequest("hello", channelId, authorId);
+        Channel channel = new Channel(ChannelType.PUBLIC, "general", "desc");
+        User author = new User("kim", "kim@sprint.io", "pwd", null);
+        BinaryContentCreateRequest file =
+            new BinaryContentCreateRequest("file.txt", "text/plain", "data".getBytes());
+
+        given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
+        given(userRepository.findById(authorId)).willReturn(Optional.of(author));
+        willThrow(new RuntimeException("storage down"))
+            .given(binaryContentRepository)
+            .save(any(BinaryContent.class));
+
+        // when
+        ThrowingCallable when = () -> messageService.create(request, List.of(file));
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(RuntimeException.class);
+        then(binaryContentRepository).should().save(any(BinaryContent.class));
+        then(messageRepository).shouldHaveNoInteractions();
     }
 
     @Test

@@ -8,11 +8,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 
 import com.sprint.mission.discodeit.dto.data.UserDto;
+import com.sprint.mission.discodeit.dto.request.BinaryContentCreateRequest;
 import com.sprint.mission.discodeit.dto.request.UserCreateRequest;
 import com.sprint.mission.discodeit.dto.request.UserUpdateRequest;
+import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.Role;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.user.UserEmailAlreadyExistsException;
@@ -165,6 +168,32 @@ public class BasicUserServiceTest {
         assertThatThrownBy(when)
             .isInstanceOf(UserEmailAlreadyExistsException.class)
             .hasMessageContaining("중복된 이메일입니다.");
+    }
+
+    @Test
+    @DisplayName("프로필 저장 중 오류가 발생하면 사용자 저장을 중단한다")
+    void updateUserProfile_저장실패() {
+        // given
+        UUID userId = UUID.randomUUID();
+        User user = new User("kim", "kim@sprint.io", "pwd", null);
+        BinaryContentCreateRequest profileRequest =
+            new BinaryContentCreateRequest("profile.png", "image/png", "img".getBytes());
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        willThrow(new RuntimeException("binary content error"))
+            .given(binaryContentRepository)
+            .save(any(BinaryContent.class));
+
+        // when
+        ThrowingCallable when = () ->
+            userService.update(userId,
+                new UserUpdateRequest("newName", "newEmail", "newPwd"),
+                Optional.of(profileRequest));
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(RuntimeException.class);
+        then(binaryContentRepository).should().save(any(BinaryContent.class));
+        then(userRepository).should(never()).save(any(User.class));
     }
 
     @Test
