@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -86,24 +87,30 @@ class TokenRefreshServiceTest {
     @Test
     @DisplayName("리프레시 토큰이 없으면 예외가 발생한다")
     void refreshTokens_토큰없으면예외() {
-        // given: null 토큰
-        // when / then: 즉시 예외 발생
-        assertThatThrownBy(() -> tokenRefreshService.refreshTokens(null, request, response))
-            .isInstanceOf(RefreshTokenNotFoundException.class);
+        // given
+        // when
+        ThrowingCallable when = () -> tokenRefreshService.refreshTokens(null, request, response);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(RefreshTokenNotFoundException.class);
     }
 
     @Test
     @DisplayName("토큰 타입이 refresh가 아니면 예외가 발생한다")
-    void refreshTokens_타입다르면예외() {
-        // given: 레지스트리에 존재하지만 타입이 access인 토큰
-        String refreshToken = "invalid-type";
+    void refreshTokens_토큰타입불일치() {
+        // given: 레지스트리에 존재하지만 타입이 access인 리프레시 토큰
+        String refreshToken = "invalid-refresh";
         given(jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)).willReturn(true);
         given(jwtTokenProvider.validateToken(refreshToken)).willReturn(true);
         given(jwtTokenProvider.getTokenType(refreshToken)).willReturn("access");
 
-        // when / then: InvalidRefreshTokenException 발생
-        assertThatThrownBy(() -> tokenRefreshService.refreshTokens(refreshToken, request, response))
-            .isInstanceOf(InvalidRefreshTokenException.class);
+        // when
+        ThrowingCallable when = () ->
+            tokenRefreshService.refreshTokens(refreshToken, request, response);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(InvalidRefreshTokenException.class);
+        then(jwtRegistry).should().hasActiveJwtInformationByRefreshToken(refreshToken);
         then(jwtRegistry).shouldHaveNoMoreInteractions();
     }
 }
