@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.doThrow;
 
 import java.time.Duration;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,12 +42,15 @@ class RedisLockProviderTest {
     @Test
     @DisplayName("이미 잠겨있으면 예외를 던진다")
     void acquireLock_실패() {
-        // given: setIfAbsent가 false 반환
+        // given
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.setIfAbsent(anyString(), any(), any(Duration.class))).willReturn(false);
 
-        // when / then: 예외 발생
-        assertThatThrownBy(() -> redisLockProvider.acquireLock("duplicated"))
+        // when
+        ThrowingCallable when = () -> redisLockProvider.acquireLock("duplicated");
+
+        // then
+        assertThatThrownBy(when)
             .isInstanceOf(RedisLockProvider.RedisLockAcquisitionException.class);
     }
 

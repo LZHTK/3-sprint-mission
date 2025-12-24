@@ -17,6 +17,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,9 +63,11 @@ class AuthControllerTest {
         given(tokenRefreshService.refreshTokens(null, request, response))
             .willThrow(new IllegalArgumentException("missing"));
 
-        // when / then
-        assertThatThrownBy(() -> authController.refreshToken(request, response))
-            .isInstanceOf(IllegalArgumentException.class);
+        // when
+        ThrowingCallable when = () -> authController.refreshToken(request, response);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(IllegalArgumentException.class);
         then(tokenRefreshService).should().refreshTokens(null, request, response);
     }
 

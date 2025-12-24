@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,14 +80,16 @@ class BasicNotificationServiceTest {
     void delete_권한없음() {
         // given
         UUID notificationId = UUID.randomUUID();
-        UUID otherUser = UUID.randomUUID();
-        UUID currentUser = UUID.randomUUID();
-        Notification otherNotification = new Notification(otherUser, "title", "content");
+        UUID otherUserId = UUID.randomUUID();
+        UUID currentUserId = UUID.randomUUID();
+        Notification otherNotification = new Notification(otherUserId, "title", "content");
         given(notificationRepository.findById(notificationId)).willReturn(Optional.of(otherNotification));
 
-        // when / then
-        assertThatThrownBy(() -> notificationService.delete(notificationId, currentUser))
-            .isInstanceOf(NotificationAccessDeniedException.class);
+        // when
+        ThrowingCallable when = () -> notificationService.delete(notificationId, currentUserId);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(NotificationAccessDeniedException.class);
         then(notificationRepository).should(never()).delete(any(Notification.class));
     }
 
@@ -97,9 +100,11 @@ class BasicNotificationServiceTest {
         UUID notificationId = UUID.randomUUID();
         given(notificationRepository.findById(notificationId)).willReturn(Optional.empty());
 
-        // when / then
-        assertThatThrownBy(() -> notificationService.delete(notificationId, UUID.randomUUID()))
-            .isInstanceOf(NotificationNotFoundException.class);
+        // when
+        ThrowingCallable when = () -> notificationService.delete(notificationId, UUID.randomUUID());
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(NotificationNotFoundException.class);
     }
 
     @Test
