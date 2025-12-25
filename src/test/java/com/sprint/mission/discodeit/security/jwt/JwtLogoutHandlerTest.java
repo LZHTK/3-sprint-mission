@@ -62,5 +62,26 @@ class JwtLogoutHandlerTest {
         assertThat(deletedCookie.getMaxAge()).isZero();
         assertThat(deletedCookie.getSecure()).isTrue();
     }
+
+    @Test
+    @DisplayName("인증 객체가 없어도 쿠키만으로 JWT를 무효화하고 쿠키를 삭제한다")
+    void logout_cookieOnly() {
+        // given
+        Cookie refreshCookie = new Cookie("REFRESH_TOKEN", "refresh.jwt");
+        UUID userId = UUID.randomUUID();
+        given(request.getCookies()).willReturn(new Cookie[]{refreshCookie});
+        given(jwtTokenProvider.extractUserId("refresh.jwt")).willReturn(userId);
+        given(request.isSecure()).willReturn(false);
+
+        // when
+        logoutHandler.logout(request, response, null);
+
+        // then
+        then(jwtRegistry).should().invalidateJwtInformationByUserId(userId);
+        ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
+        then(response).should().addCookie(cookieCaptor.capture());
+        assertThat(cookieCaptor.getValue().getMaxAge()).isZero();
+    }
+
 }
 

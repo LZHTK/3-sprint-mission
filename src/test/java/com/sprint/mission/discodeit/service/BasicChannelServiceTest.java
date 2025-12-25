@@ -239,6 +239,22 @@ public class BasicChannelServiceTest {
     }
 
     @Test
+    @DisplayName("채널 업데이트 시 존재하지 않는 ID면 ChannelNotFoundException이 발생한다")
+    void updateChannel_notFound() {
+        // given
+        UUID channelId = UUID.randomUUID();
+        PublicChannelUpdateRequest request = new PublicChannelUpdateRequest("newName", "newDesc");
+        given(channelRepository.findById(channelId)).willReturn(Optional.empty());
+
+        // when
+        ThrowingCallable when = () -> channelService.update(channelId, request);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(ChannelNotFoundException.class);
+        then(channelRepository).should().findById(channelId);
+    }
+
+    @Test
     @DisplayName("채널 삭제 - case : success")
     void deleteChannelSuccess() {
         UUID channelId = UUID.randomUUID();
@@ -284,6 +300,29 @@ public class BasicChannelServiceTest {
         then(channelRepository).should().existsById(channelId);
         then(channelRepository).should(never()).deleteById(any());
     }
+
+    @Test
+    @DisplayName("채널 삭제 시 존재하지 않으면 ChannelNotFoundException이 발생한다")
+    void deleteChannel_notFound() {
+        // given
+        UUID channelId = UUID.randomUUID();
+        Channel channel = new Channel(ChannelType.PUBLIC, "old", "desc");
+        ChannelDto dto = new ChannelDto(channelId, ChannelType.PUBLIC, "old", "desc", null, Instant.now());
+        given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
+        given(channelMapper.toDto(channel)).willReturn(dto);
+        given(channelRepository.existsById(channelId)).willReturn(false);
+
+        // when
+        ThrowingCallable when = () -> channelService.delete(channelId);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(ChannelNotFoundException.class);
+        then(channelRepository).should().findById(channelId);
+        then(channelRepository).should().existsById(channelId);
+        then(messageRepository).shouldHaveNoInteractions();
+        then(readStatusRepository).shouldHaveNoInteractions();
+    }
+
 
     @Test
     @DisplayName("유저의 채널 전체 조회 - case : success")
