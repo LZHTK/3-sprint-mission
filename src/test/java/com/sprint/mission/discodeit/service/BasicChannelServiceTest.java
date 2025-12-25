@@ -165,6 +165,38 @@ public class BasicChannelServiceTest {
     }
 
     @Test
+    @DisplayName("공개 채널 이름이 중복되면 ChannelNameAlreadyExistsException이 발생한다")
+    void createPublicChannel_duplicateName() {
+        // given
+        PublicChannelCreateRequest request = new PublicChannelCreateRequest("dev", "desc");
+        given(channelRepository.existsChannelByName("dev")).willReturn(true);
+
+        // when
+        ThrowingCallable when = () -> channelService.create(request);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(ChannelNameAlreadyExistsException.class);
+        then(channelRepository).should(never()).save(any(Channel.class));
+    }
+
+    @Test
+    @DisplayName("비공개 채널 생성 시 일부 사용자만 조회되면 UserNotFoundException이 발생한다")
+    void createPrivateChannel_userMissing() {
+        // given
+        UUID memberId = UUID.randomUUID();
+        PrivateChannelCreateRequest request = new PrivateChannelCreateRequest(List.of(memberId));
+        given(userRepository.findAllById(List.of(memberId))).willReturn(List.of());
+
+        // when
+        ThrowingCallable when = () -> channelService.create(request);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(UserNotFoundException.class);
+        then(channelRepository).shouldHaveNoInteractions();
+        then(readStatusRepository).shouldHaveNoInteractions();
+    }
+
+    @Test
     @DisplayName("Public 채널 수정 - case : success")
     void updatePublicChannelSuccess() {
         // Given
