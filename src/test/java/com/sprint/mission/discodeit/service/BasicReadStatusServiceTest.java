@@ -14,6 +14,7 @@ import com.sprint.mission.discodeit.entity.Channel;
 import com.sprint.mission.discodeit.entity.ChannelType;
 import com.sprint.mission.discodeit.entity.ReadStatus;
 import com.sprint.mission.discodeit.entity.User;
+import com.sprint.mission.discodeit.exception.channel.ChannelNotFoundException;
 import com.sprint.mission.discodeit.exception.readstatus.ReadStatusAlreadyExistsException;
 import com.sprint.mission.discodeit.exception.readstatus.ReadStatusNotFoundException;
 import com.sprint.mission.discodeit.mapper.ReadStatusMapper;
@@ -93,6 +94,23 @@ class BasicReadStatusServiceTest {
     }
 
     @Test
+    @DisplayName("생성 시 채널이 존재하지 않으면 ChannelNotFoundException이 발생한다")
+    void create_channelMissing() {
+        // given
+        UUID userId = UUID.randomUUID();
+        UUID channelId = UUID.randomUUID();
+        ReadStatusCreateRequest request = new ReadStatusCreateRequest(userId, channelId, Instant.now());
+        given(userRepository.findById(userId)).willReturn(Optional.of(new User("kim","kim@sprint.io","pw",null)));
+        given(channelRepository.findById(channelId)).willReturn(Optional.empty());
+
+        // when
+        ThrowingCallable when = () -> readStatusService.create(request);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(ChannelNotFoundException.class);
+    }
+
+    @Test
     @DisplayName("읽음 상태 업데이트 시 시간과 알림 여부가 모두 갱신된다")
     void updateReadStatus_updatesFields() {
         // given: 기존 ReadStatus가 존재하며 새로운 시간/알림 설정을 전달
@@ -121,6 +139,20 @@ class BasicReadStatusServiceTest {
     @Test
     @DisplayName("삭제 대상이 없으면 ReadStatusNotFoundException을 던진다")
     void deleteReadStatus_notFound() {
+        // given
+        UUID readStatusId = UUID.randomUUID();
+        given(readStatusRepository.existsById(readStatusId)).willReturn(false);
+
+        // when
+        ThrowingCallable when = () -> readStatusService.delete(readStatusId);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(ReadStatusNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("삭제 시 ID가 없으면 ReadStatusNotFoundException이 발생한다")
+    void delete_notFound() {
         // given
         UUID readStatusId = UUID.randomUUID();
         given(readStatusRepository.existsById(readStatusId)).willReturn(false);

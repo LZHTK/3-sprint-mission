@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -49,6 +50,20 @@ class RedisBasedSseServiceTest {
     }
 
     @Test
+    @DisplayName("send 호출 시 Redis targeted 채널로 메시지를 publish 한다")
+    void send_publishesTargetedChannel() {
+        // given
+        RedisBasedSseService service = new RedisBasedSseService(redisTemplate, new ObjectMapper());
+
+        // when
+        service.send(List.of(UUID.randomUUID()), "notifications.new", "payload");
+
+        // then
+        then(redisTemplate).should()
+            .convertAndSend(eq("sse:targeted"), any(RedisBasedSseService.SseMessage.class));
+    }
+
+    @Test
     @DisplayName("브로드캐스트 요청은 Redis broadcast 채널로 publish 된다")
     void broadcast_브로드캐스트발행() {
         // given / when
@@ -85,6 +100,25 @@ class RedisBasedSseServiceTest {
         assertThat(okEmitter.invoked).isTrue();
         assertThat(connections).containsKey(okUser);
         assertThat(connections).doesNotContainKey(failUser);
+    }
+
+    @Test
+    @DisplayName("handleBroadcastMessage는 등록된 emitter 모두에 데이터를 전달한다")
+    void handleBroadcastMessage_deliversToEmitters() throws Exception {
+        // given
+        RedisBasedSseService service = new RedisBasedSseService(redisTemplate, new ObjectMapper());
+        UUID userId = UUID.randomUUID();
+        SseEmitter emitter = mock(SseEmitter.class);
+        @SuppressWarnings("unchecked")
+        ConcurrentMap<UUID, SseEmitter> connections =
+            (ConcurrentMap<UUID, SseEmitter>) ReflectionTestUtils.getField(service, "localConnections");
+        connections.put(userId, emitter);
+
+        // when
+        service.handleBroadcastMessage(new RedisBasedSseService.SseMessage(null, "ping", "data"));
+
+        // then
+        then(emitter).should().send(any(SseEmitter.SseEventBuilder.class));
     }
 
     private static class RecordingEmitter extends SseEmitter {

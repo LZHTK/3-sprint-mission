@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 
 import com.sprint.mission.discodeit.dto.data.UserDto;
+import com.sprint.mission.discodeit.dto.request.UserRoleUpdateRequest;
 import com.sprint.mission.discodeit.dto.response.JwtDto;
 import com.sprint.mission.discodeit.entity.Role;
+import com.sprint.mission.discodeit.exception.auth.RefreshTokenNotFoundException;
 import com.sprint.mission.discodeit.security.DiscodeitUserDetails;
 import com.sprint.mission.discodeit.security.jwt.JwtRegistry;
 import com.sprint.mission.discodeit.service.AuthService;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
@@ -72,13 +76,29 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("리프레시 쿠키가 없으면 TokenRefreshService에 null이 전달된다")
+    void refreshToken_cookieMissing() {
+        // given
+        given(request.getCookies()).willReturn(null);
+        given(tokenRefreshService.refreshTokens(null, request, response))
+            .willThrow(new RefreshTokenNotFoundException());
+
+        // when
+        ThrowingCallable when = () -> authController.refreshToken(request, response);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(RefreshTokenNotFoundException.class);
+        then(tokenRefreshService).should().refreshTokens(null, request, response);
+    }
+
+    @Test
     @DisplayName("유저 역할 변경 API는 JwtRegistry를 통해 강제 로그아웃을 수행한다")
     void updateUserRole_강제로그아웃() {
         // given
         UUID userId = UUID.randomUUID();
         var requestDto = new com.sprint.mission.discodeit.dto.request.UserRoleUpdateRequest(
             userId, Role.ADMIN);
-        var adminDetails = org.mockito.Mockito.mock(DiscodeitUserDetails.class);
+        var adminDetails = mock(DiscodeitUserDetails.class);
         var responseDto = new UserDto(userId, "kim", "kim@sprint.io", Role.ADMIN, null, true);
         given(jwtRegistry.hasActiveJwtInformationByUserId(userId)).willReturn(true);
         given(authService.updateUserRole(userId, Role.ADMIN)).willReturn(responseDto);
@@ -90,6 +110,25 @@ class AuthControllerTest {
         assertThat(response.getBody()).isEqualTo(responseDto);
         then(jwtRegistry).should().invalidateJwtInformationByUserId(userId);
         then(authService).should().updateUserRole(userId, Role.ADMIN);
+    }
+
+    @Test
+    @DisplayName("역할 변경 API 호출 시 JwtRegistry를 통해 강제 로그아웃이 수행된다")
+    void updateUserRole_forcesLogout() {
+        // given
+        UUID userId = UUID.randomUUID();
+        UserRoleUpdateRequest req = new UserRoleUpdateRequest(userId, Role.ADMIN);
+        DiscodeitUserDetails principal = mock(DiscodeitUserDetails.class);
+        UserDto dto = new UserDto(userId, "kim", "kim@sprint.io", Role.ADMIN, null, true);
+        given(jwtRegistry.hasActiveJwtInformationByUserId(userId)).willReturn(true);
+        given(authService.updateUserRole(userId, Role.ADMIN)).willReturn(dto);
+
+        // when
+        ResponseEntity<UserDto> response = authController.updateUserRole(req, principal);
+
+        // then
+        assertThat(response.getBody()).isEqualTo(dto);
+        then(jwtRegistry).should().invalidateJwtInformationByUserId(userId);
     }
 }
 

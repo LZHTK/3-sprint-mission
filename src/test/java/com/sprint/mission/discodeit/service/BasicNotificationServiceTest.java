@@ -58,6 +58,23 @@ class BasicNotificationServiceTest {
     }
 
     @Test
+    @DisplayName("캐시가 null이어도 알림 생성은 정상 동작한다")
+    void create_cacheNull() {
+        // given
+        UUID receiverId = UUID.randomUUID();
+        NotificationDto dto = new NotificationDto(UUID.randomUUID(), Instant.now(), receiverId, "title", "body");
+        given(notificationMapper.toDto(any(Notification.class))).willReturn(dto);
+        given(cacheManager.getCache("userNotifications")).willReturn(null);
+
+        // when
+        NotificationDto result = notificationService.create(receiverId, "title", "body");
+
+        // then
+        assertThat(result).isEqualTo(dto);
+        then(notificationRepository).should().save(any(Notification.class));
+    }
+
+    @Test
     @DisplayName("알림 목록 조회는 레포지토리 데이터를 DTO로 매핑한다")
     void findAllByReceiverId() {
         // given
@@ -123,5 +140,21 @@ class BasicNotificationServiceTest {
         then(notificationRepository).should().delete(notification);
         // CacheEvict 애노테이션 동작은 프록시에서 처리되므로 직접 검증할 수 없지만,
         // 최소한 delete 로직이 예외 없이 마무리되는지를 확인한다.
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 알림을 삭제하면 NotificationAccessDeniedException이 발생한다")
+    void delete_denied() {
+        // given
+        UUID notificationId = UUID.randomUUID();
+        Notification notification = new Notification(UUID.randomUUID(), "title", "body");
+        given(notificationRepository.findById(notificationId)).willReturn(Optional.of(notification));
+
+        // when
+        ThrowingCallable when = () -> notificationService.delete(notificationId, UUID.randomUUID());
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(NotificationAccessDeniedException.class);
+        then(notificationRepository).should(never()).delete(any());
     }
 }

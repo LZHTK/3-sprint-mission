@@ -27,6 +27,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.testcontainers.shaded.com.google.common.net.HttpHeaders;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
@@ -88,6 +89,26 @@ class JwtAuthenticationFilterTest {
 
         // cleanup
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("활성화되지 않은 토큰이면 SecurityContext를 설정하지 않는다")
+    void doFilter_inactiveToken() throws Exception {
+        // given
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer access.jwt");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        given(jwtTokenProvider.validateToken("access.jwt")).willReturn(true);
+        given(jwtTokenProvider.getTokenType("access.jwt")).willReturn("access");
+        given(jwtRegistry.hasActiveJwtInformationByAccessToken("access.jwt")).willReturn(false);
+
+        // when
+        filter.doFilterInternal(request, response, chain);
+
+        // then
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        then(chain).should().doFilter(request, response);
     }
 
 }
