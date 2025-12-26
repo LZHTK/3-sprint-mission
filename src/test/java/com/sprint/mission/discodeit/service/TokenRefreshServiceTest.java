@@ -113,5 +113,32 @@ class TokenRefreshServiceTest {
         then(jwtRegistry).should().hasActiveJwtInformationByRefreshToken(refreshToken);
         then(jwtRegistry).shouldHaveNoMoreInteractions();
     }
+
+    @Test
+    @DisplayName("리프레시 토큰이 없으면 RefreshTokenNotFoundException이 발생한다")
+    void refreshTokens_missingToken() {
+        // given: null 토큰
+        // when
+        ThrowingCallable when = () -> tokenRefreshService.refreshTokens(null, request, response);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(RefreshTokenNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("토큰 타입이 refresh가 아니면 InvalidRefreshTokenException이 발생한다")
+    void refreshTokens_invalidType() {
+        // given: 레지스트리와 검증은 통과하지만 타입이 access 인 토큰
+        String token = "access-token";
+        given(jwtRegistry.hasActiveJwtInformationByRefreshToken(token)).willReturn(true);
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.getTokenType(token)).willReturn("access");
+
+        // when
+        ThrowingCallable when = () -> tokenRefreshService.refreshTokens(token, request, response);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(InvalidRefreshTokenException.class);
+    }
 }
 
