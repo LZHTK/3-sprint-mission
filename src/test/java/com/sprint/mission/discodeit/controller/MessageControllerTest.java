@@ -1,8 +1,11 @@
 package com.sprint.mission.discodeit.controller;
 
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -13,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.sprint.mission.discodeit.dto.data.MessageDto;
 import com.sprint.mission.discodeit.dto.data.UserDto;
 import com.sprint.mission.discodeit.dto.request.MessageCreateRequest;
+import com.sprint.mission.discodeit.dto.response.PageResponse;
 import com.sprint.mission.discodeit.entity.Role;
 import com.sprint.mission.discodeit.exception.GlobalExceptionHandler;
 import com.sprint.mission.discodeit.exception.channel.ChannelNotFoundException;
@@ -32,6 +36,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -186,5 +191,24 @@ public class MessageControllerTest {
         // Then
         result.andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("메시지를 찾을 수 없습니다."));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages - case : success")
+    void getMessages_success() throws Exception {
+        // given
+        UUID channelId = UUID.randomUUID();
+        MessageDto dto = new MessageDto(UUID.randomUUID(), Instant.now(), null, "hi", channelId, null, null);
+        PageResponse<MessageDto> pageResponse = new PageResponse<>(List.of(dto), null, 1, false, 1L);
+        given(messageService.findAllByChannelId(eq(channelId), any(), any())).willReturn(pageResponse);
+
+        // when
+        ResultActions result = mockMvc.perform(get("/api/messages")
+            .param("channelId", channelId.toString()));
+
+        // then
+        result.andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].channelId").value(channelId.toString()))
+            .andExpect(jsonPath("$.content[0].content").value("hi"));
     }
 }
