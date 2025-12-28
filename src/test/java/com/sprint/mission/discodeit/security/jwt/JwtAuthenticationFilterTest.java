@@ -153,5 +153,28 @@ class JwtAuthenticationFilterTest {
         SecurityContextHolder.clearContext();
     }
 
+    @Test
+    @DisplayName("UserDetails 로딩 중 예외가 발생하면 SecurityContext를 비우고 체인만 통과시킨다")
+    void doFilter_userDetailsThrows_exceptionClearsContext() throws Exception {
+        // given
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer access.jwt");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        given(jwtTokenProvider.validateToken("access.jwt")).willReturn(true);
+        given(jwtTokenProvider.getTokenType("access.jwt")).willReturn("access");
+        given(jwtRegistry.hasActiveJwtInformationByAccessToken("access.jwt")).willReturn(true);
+        given(jwtTokenProvider.extractUsername("access.jwt")).willReturn("kim");
+        given(userDetailsService.loadUserByUsername("kim"))
+            .willThrow(new IllegalStateException("DB error"));
+
+        // when
+        filter.doFilterInternal(request, response, chain);
+
+        // then
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        then(chain).should().doFilter(request, response);
+    }
 
 }
