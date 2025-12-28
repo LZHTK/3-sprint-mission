@@ -121,6 +121,47 @@ class RedisBasedSseServiceTest {
         then(emitter).should().send(any(SseEmitter.SseEventBuilder.class));
     }
 
+    @Test
+    @DisplayName("connect 호출 시 emitter가 등록된다")
+    void connect_registersEmitter() {
+        // given: 연결할 사용자 ID만 준비
+        UUID userId = UUID.randomUUID();
+
+        // when: SSE connect 호출
+        redisBasedSseService.connect(userId, null);
+
+        // then: localConnections에 emitter가 등록됨
+        @SuppressWarnings("unchecked")
+        ConcurrentMap<UUID, SseEmitter> connections =
+            (ConcurrentMap<UUID, SseEmitter>) ReflectionTestUtils.getField(
+                redisBasedSseService, "localConnections");
+        assertThat(connections).containsKey(userId);
+    }
+
+    @Test
+    @DisplayName("cleanUp은 ping에 실패한 emitter를 제거한다")
+    void cleanUp_removesDeadEmitters() {
+        // given: ping 시 항상 IOException을 던지는 emitter 등록
+        @SuppressWarnings("unchecked")
+        ConcurrentMap<UUID, SseEmitter> connections =
+            (ConcurrentMap<UUID, SseEmitter>) ReflectionTestUtils.getField(
+                redisBasedSseService, "localConnections");
+        UUID userId = UUID.randomUUID();
+        connections.put(userId, new SseEmitter(Long.MAX_VALUE) {
+            @Override
+            public void send(SseEventBuilder builder) throws IOException {
+                throw new IOException("disconnected");
+            }
+        });
+
+        // when: 정기 정리 실행
+        redisBasedSseService.cleanUp();
+
+        // then: ping 실패한 emitter가 제거됨
+        assertThat(connections).doesNotContainKey(userId);
+    }
+
+
     private static class RecordingEmitter extends SseEmitter {
         boolean invoked = false;
 
