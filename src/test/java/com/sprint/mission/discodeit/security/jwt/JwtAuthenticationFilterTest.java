@@ -111,4 +111,47 @@ class JwtAuthenticationFilterTest {
         then(chain).should().doFilter(request, response);
     }
 
+    @Test
+    @DisplayName("검증에 실패한 토큰이면 인증 없이 체인을 통과시킨다")
+    void doFilter_invalidToken_skipsAuthentication() throws Exception {
+        // given: Authorization 헤더만 존재하고 검증은 실패함
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer access.jwt");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        given(jwtTokenProvider.validateToken("access.jwt")).willReturn(false);
+
+        // when: 필터 실행
+        filter.doFilterInternal(request, response, chain);
+
+        // then: 추가 호출 없이 다음 필터로 전달
+        verifyNoInteractions(jwtRegistry, userDetailsService);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        then(chain).should().doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("access 토큰이 아니면 JwtRegistry를 조회하지 않는다")
+    void doFilter_nonAccessToken_doesNotLookupRegistry() throws Exception {
+        // given: refresh 토큰이지만 형식만 맞음
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer refresh.jwt");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        given(jwtTokenProvider.validateToken("refresh.jwt")).willReturn(true);
+        given(jwtTokenProvider.getTokenType("refresh.jwt")).willReturn("refresh");
+
+        // when: 필터 실행
+        filter.doFilterInternal(request, response, chain);
+
+        // then: registry/userDetails 미호출 + 인증 비설정
+        verifyNoInteractions(jwtRegistry, userDetailsService);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        then(chain).should().doFilter(request, response);
+
+        // cleanup
+        SecurityContextHolder.clearContext();
+    }
+
+
 }
