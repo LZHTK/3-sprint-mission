@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -161,6 +162,29 @@ class RedisBasedSseServiceTest {
         assertThat(connections).doesNotContainKey(userId);
     }
 
+    @Test
+    @DisplayName("handleTargetedMessage에서 send가 실패하면 해당 emitter를 제거한다")
+    void handleTargetedMessage_removesFailingEmitter() throws Exception {
+        // given: Exception을 던지는 emitter 등록
+        RedisBasedSseService service = new RedisBasedSseService(redisTemplate, new ObjectMapper());
+        UUID userId = UUID.randomUUID();
+        SseEmitter failingEmitter = mock(SseEmitter.class);
+        doThrow(new IOException("boom"))
+            .when(failingEmitter).send(any(SseEmitter.SseEventBuilder.class));
+        @SuppressWarnings("unchecked")
+        ConcurrentMap<UUID, SseEmitter> connections =
+            (ConcurrentMap<UUID, SseEmitter>) ReflectionTestUtils.getField(service, "localConnections");
+        connections.put(userId, failingEmitter);
+
+        RedisBasedSseService.SseMessage message =
+            new RedisBasedSseService.SseMessage(List.of(userId), "notifications.new", "payload");
+
+        // when: targeted 메시지 처리
+        service.handleTargetedMessage(message);
+
+        // then: 실패한 emitter가 제거됨
+        assertThat(connections).doesNotContainKey(userId);
+    }
 
     private static class RecordingEmitter extends SseEmitter {
         boolean invoked = false;

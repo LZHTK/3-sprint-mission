@@ -1,13 +1,13 @@
 package com.sprint.mission.discodeit.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willThrow;
 
 import com.sprint.mission.discodeit.dto.data.BinaryContentDto;
 import com.sprint.mission.discodeit.entity.BinaryContentStatus;
+import com.sprint.mission.discodeit.exception.binarycontent.BinaryContentNotFoundException;
 import com.sprint.mission.discodeit.service.BinaryContentService;
 import com.sprint.mission.discodeit.storage.BinaryContentStorage;
 import java.io.ByteArrayInputStream;
@@ -15,7 +15,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
 class BinaryContentControllerTest {
@@ -97,5 +100,21 @@ class BinaryContentControllerTest {
         // then
         assertThat(response.getBody()).containsExactly(dto);
         then(binaryContentService).should().findAllByIdIn(List.of(binaryContentId, anotherId));
+    }
+
+    @Test
+    @DisplayName("스토리지 메타정보 조회가 실패하면 예외를 전파한다")
+    void download_metadataNotFound() throws Exception {
+        // given: 서비스가 예외를 던지도록 설정
+        UUID id = UUID.randomUUID();
+        given(binaryContentService.find(id))
+            .willThrow(new BinaryContentNotFoundException(Map.of("binaryContentId", id)));
+
+        // when
+        ThrowingCallable when = () -> controller.download(id);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(BinaryContentNotFoundException.class);
+        then(binaryContentStorage).shouldHaveNoInteractions();
     }
 }
