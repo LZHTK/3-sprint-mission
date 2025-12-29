@@ -117,4 +117,20 @@ class BinaryContentControllerTest {
         assertThatThrownBy(when).isInstanceOf(BinaryContentNotFoundException.class);
         then(binaryContentStorage).shouldHaveNoInteractions();
     }
+
+    @Test
+    @DisplayName("메타정보 조회 예외는 그대로 전파하고 Storage는 건드리지 않는다")
+    void download_metadataLookupThrows() {
+        // given: 서비스가 예외를 던지도록 설정
+        UUID id = UUID.randomUUID();
+        given(binaryContentService.find(id))
+            .willThrow(new BinaryContentNotFoundException(Map.of("binaryContentId", id)));
+
+        // when
+        ThrowingCallable when = () -> controller.download(id);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(BinaryContentNotFoundException.class);
+        then(binaryContentStorage).shouldHaveNoInteractions();
+    }
 }

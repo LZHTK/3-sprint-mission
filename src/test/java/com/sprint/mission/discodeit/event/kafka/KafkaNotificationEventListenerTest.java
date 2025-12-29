@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.mission.discodeit.dto.data.NotificationDto;
+import com.sprint.mission.discodeit.entity.ReadStatus;
 import com.sprint.mission.discodeit.entity.Role;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.event.MessageCreateEvent;
@@ -104,5 +105,44 @@ class KafkaNotificationEventListenerTest {
 
         // then: 예외가 외부로 던져지지 않음
         assertThatCode(when).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("메시지 작성자에게는 알림과 SSE 전송을 하지 않는다")
+    void handleMessageCreateEvent_skipsAuthor() throws Exception {
+        // given: 구독자와 작성자가 동일한 상황
+        UUID channelId = UUID.randomUUID();
+        UUID authorId = UUID.randomUUID();
+        MessageCreateEvent event = new MessageCreateEvent(
+            UUID.randomUUID(), channelId, authorId, "me", "dev", "self");
+        given(objectMapper.readValue("json", MessageCreateEvent.class)).willReturn(event);
+
+        User author = mock(User.class);
+        given(author.getId()).willReturn(authorId);
+        ReadStatus status = mock(ReadStatus.class);
+        given(status.getUser()).willReturn(author);
+        given(readStatusRepository.findAllByChannelIdAndNotificationEnabledTrue(channelId))
+            .willReturn(List.of(status));
+
+        // when: 메시지 처리
+        listener.handleMessageCreateEvent("json");
+
+        // then: 본인에게는 알림 전송 없음
+        then(notificationService).shouldHaveNoInteractions();
+        then(sseService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("RoleUpdatedEvent 역직렬화 실패 시에도 예외를 전파하지 않는다")
+    void handleRoleUpdatedEvent_jsonError() throws Exception {
+        // given
+        given(objectMapper.readValue("bad", RoleUpdatedEvent.class))
+            .willThrow(new RuntimeException("boom"));
+
+        // when & then
+        ThrowingCallable when = () -> listener.handleRoleUpdatedEvent("bad");
+        assertThatCode(when).doesNotThrowAnyException();
+        then(notificationService).shouldHaveNoInteractions();
+        then(sseService).shouldHaveNoInteractions();
     }
 }

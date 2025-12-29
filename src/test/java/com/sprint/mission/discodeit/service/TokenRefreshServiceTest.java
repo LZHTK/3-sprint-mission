@@ -140,5 +140,38 @@ class TokenRefreshServiceTest {
         // then
         assertThatThrownBy(when).isInstanceOf(InvalidRefreshTokenException.class);
     }
+
+    @Test
+    @DisplayName("JwtRegistry에 등록되지 않은 리프레시 토큰이면 InvalidRefreshTokenException이 발생한다")
+    void refreshTokens_inactiveRefreshToken() {
+        // given
+        String refreshToken = "stale";
+        given(jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)).willReturn(false);
+
+        // when
+        ThrowingCallable when = () -> tokenRefreshService.refreshTokens(refreshToken, request, response);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(InvalidRefreshTokenException.class);
+        then(jwtTokenProvider).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("validateToken이 실패하면 InvalidRefreshTokenException을 던진다")
+    void refreshTokens_invalidSignature() {
+        // given
+        String refreshToken = "invalid-signature";
+        given(jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)).willReturn(true);
+        given(jwtTokenProvider.validateToken(refreshToken)).willReturn(false);
+
+        // when
+        ThrowingCallable when = () -> tokenRefreshService.refreshTokens(refreshToken, request, response);
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(InvalidRefreshTokenException.class);
+        then(jwtTokenProvider).should().validateToken(refreshToken);
+        then(jwtTokenProvider).shouldHaveNoMoreInteractions();
+    }
+
 }
 
