@@ -10,6 +10,7 @@ import com.sprint.mission.discodeit.security.jwt.JwtTokenProvider;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,6 +69,39 @@ class JwtAuthenticationChannelInterceptorTest {
         then(jwtTokenProvider).shouldHaveNoInteractions();
         then(jwtRegistry).shouldHaveNoInteractions();
     }
+
+    @Test
+    @DisplayName("유효성 검증에 실패하면 IllegalArgumentException을 던진다")
+    void preSend_invalidToken() {
+        // given: 유효하지 않은 토큰
+        Message<byte[]> message = buildConnectMessage("Bearer invalid.jwt");
+        given(jwtTokenProvider.validateToken("invalid.jwt")).willReturn(false);
+
+        // when: preSend 실행
+        ThrowingCallable when = () -> interceptor.preSend(message, channel);
+
+        // then: 예외 발생 및 Registry 호출 없음
+        assertThatThrownBy(when).isInstanceOf(IllegalArgumentException.class);
+        then(jwtRegistry).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("tokenType이 access가 아니면 IllegalArgumentException을 던진다")
+    void preSend_nonAccessToken() {
+        // given: refresh 토큰 시나리오
+        Message<byte[]> message = buildConnectMessage("Bearer refresh.jwt");
+        given(jwtTokenProvider.validateToken("refresh.jwt")).willReturn(true);
+        given(jwtRegistry.hasActiveJwtInformationByAccessToken("refresh.jwt")).willReturn(true);
+        given(jwtTokenProvider.getTokenType("refresh.jwt")).willReturn("refresh");
+
+        // when: preSend 실행
+        ThrowingCallable when = () -> interceptor.preSend(message, channel);
+
+        // then: 예외 발생, tokenType 조회만 수행
+        assertThatThrownBy(when).isInstanceOf(IllegalArgumentException.class);
+        then(jwtTokenProvider).should().getTokenType("refresh.jwt");
+    }
+
 
     private Message<byte[]> buildConnectMessage(String authorization) {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.COMMIT);

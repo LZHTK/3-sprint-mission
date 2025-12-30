@@ -3,11 +3,14 @@ package com.sprint.mission.discodeit.storage.s3;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 import com.sprint.mission.discodeit.dto.data.BinaryContentDto;
 import com.sprint.mission.discodeit.entity.BinaryContentStatus;
+import com.sprint.mission.discodeit.entity.Notification;
 import com.sprint.mission.discodeit.repository.NotificationRepository;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -15,6 +18,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -51,7 +56,7 @@ class S3BinaryContentStorageTest {
             .withServices(LocalStackContainer.Service.S3);
 
     private TestS3BinaryContentStorage storage;
-    private final NotificationRepository notificationRepository = Mockito.mock(NotificationRepository.class);
+    private final NotificationRepository notificationRepository = mock(NotificationRepository.class);
 
     private static final String BUCKET_NAME = "test-bucket";
     private static final String ACCESS_KEY = "test";
@@ -254,7 +259,7 @@ class S3BinaryContentStorageTest {
     @DisplayName("get 호출 시 LocalStack 예외 → 빈 InputStream")
     void get_whenClientThrows_returnsEmptyStream() throws IOException {
         TestS3BinaryContentStorage spy = Mockito.spy(storage);
-        S3Client failingClient = Mockito.mock(S3Client.class);
+        S3Client failingClient = mock(S3Client.class);
         doReturn(failingClient).when(spy).buildLocalStackClient();
         doThrow(SdkClientException.create("fail"))
             .when(failingClient).getObject(any(GetObjectRequest.class));
@@ -303,7 +308,7 @@ class S3BinaryContentStorageTest {
     void get_returnsEmptyStreamOnS3Exception() throws Exception {
         // given: buildLocalStackClient()가 던지는 S3Client가 예외를 일으키도록 설정
         TestS3BinaryContentStorage spy = Mockito.spy(storage);
-        S3Client failingClient = Mockito.mock(S3Client.class);
+        S3Client failingClient = mock(S3Client.class);
         doReturn(failingClient).when(spy).buildLocalStackClient();
         doThrow(SdkClientException.create("boom"))
             .when(failingClient).getObject(any(GetObjectRequest.class));
@@ -314,4 +319,23 @@ class S3BinaryContentStorageTest {
         // then: 예외 대신 빈 스트림
         assertThat(result.readAllBytes()).isEmpty();
     }
+
+    @Test
+    @DisplayName("recoverPut은 관리자 알림을 저장하고 RuntimeException을 던진다")
+    void recoverPut_sendsAdminNotification() {
+        // given
+        NotificationRepository notificationRepository = mock(NotificationRepository.class);
+        S3BinaryContentStorage storage = new S3BinaryContentStorage(
+            "access", "secret", "us-east-1", "bucket", 600, notificationRepository);
+        ReflectionTestUtils.setField(storage, "adminUserId", UUID.randomUUID().toString());
+
+        // when
+        ThrowingCallable when = () -> storage.recoverPut(
+            new RuntimeException("fail"), UUID.randomUUID(), "bytes".getBytes());
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(RuntimeException.class);
+        then(notificationRepository).should().save(any(Notification.class));
+    }
+
 }
