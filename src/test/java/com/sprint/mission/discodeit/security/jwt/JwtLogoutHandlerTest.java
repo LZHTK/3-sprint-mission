@@ -1,8 +1,10 @@
 package com.sprint.mission.discodeit.security.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import com.sprint.mission.discodeit.dto.data.UserDto;
@@ -81,6 +83,26 @@ class JwtLogoutHandlerTest {
         ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
         then(response).should().addCookie(cookieCaptor.capture());
         assertThat(cookieCaptor.getValue().getMaxAge()).isZero();
+    }
+
+    @Test
+    @DisplayName("쿠키와 인증 정보가 모두 없으면 JwtRegistry만 건드리지 않는다")
+    void logout_withoutCookieAndAuthentication() {
+        // given: 쿠키가 없고 authentication 도 null
+        given(request.getCookies()).willReturn(null);
+
+        // when
+        logoutHandler.logout(request, response, null);
+
+        // then: Registry는 호출되지 않음
+        then(jwtRegistry).shouldHaveNoInteractions();
+
+        // and: 응답에는 만료된 쿠키가 한 번 추가됨
+        ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
+        then(response).should().addCookie(cookieCaptor.capture());
+        Cookie expired = cookieCaptor.getValue();
+        assertThat(expired.getName()).isEqualTo("REFRESH_TOKEN");
+        assertThat(expired.getMaxAge()).isZero();
     }
 
 }
