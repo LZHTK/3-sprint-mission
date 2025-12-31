@@ -211,4 +211,25 @@ public class MessageControllerTest {
             .andExpect(jsonPath("$.content[0].channelId").value(channelId.toString()))
             .andExpect(jsonPath("$.content[0].content").value("hi"));
     }
+
+    @Test
+    @DisplayName("POST /api/messages에서 messageCreateRequest 파트가 없으면 500이 반환된다")
+    void createMessage_missingMultipart() throws Exception {
+        // given: multipart 요청이지만 필수 파트가 없음
+
+        // when & then
+        mockMvc.perform(multipart("/api/messages")
+                .contentType(MediaType.MULTIPART_FORM_DATA))
+            .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    @DisplayName("GET /api/messages에서 channelId가 없으면 500이 반환된다")
+    void getMessages_missingChannelId() throws Exception {
+        // given: 필수 파라미터 없이 호출
+
+        // when & then
+        mockMvc.perform(get("/api/messages"))
+            .andExpect(status().isInternalServerError());
+    }
 }

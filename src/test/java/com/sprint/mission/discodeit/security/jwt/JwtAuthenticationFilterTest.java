@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -177,4 +178,38 @@ class JwtAuthenticationFilterTest {
         then(chain).should().doFilter(request, response);
     }
 
+    @Test
+    @DisplayName("Authorization 헤더가 Bearer 형식이 아니면 체인을 그대로 통과시킨다")
+    void doFilter_wrongAuthHeader() throws Exception {
+        // given
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Token foo");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        // when
+        filter.doFilterInternal(request, response, chain);
+
+        // then
+        then(chain).should().doFilter(request, response);
+        verifyNoInteractions(jwtTokenProvider, jwtRegistry, userDetailsService);
+    }
+
+    @Test
+    @DisplayName("validateToken이 false면 registry를 조회하지 않는다")
+    void doFilter_invalidToken() throws Exception {
+        // given
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer access.jwt");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        given(jwtTokenProvider.validateToken("access.jwt")).willReturn(false);
+
+        // when
+        filter.doFilterInternal(request, response, chain);
+
+        // then
+        then(chain).should().doFilter(request, response);
+        verifyNoInteractions(jwtRegistry, userDetailsService);
+    }
 }
