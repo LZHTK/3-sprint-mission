@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-class JwtTokenProviderTest {
+public class JwtTokenProviderTest {
 
     private JwtTokenProvider tokenProvider;
     private UsernamePasswordAuthenticationToken authentication;
@@ -69,5 +69,32 @@ class JwtTokenProviderTest {
         assertThat(validitySeconds).isPositive();
         assertThat(expirationDate).isNotNull();
         assertThat(tokenProvider.isTokenExpired(accessToken)).isFalse();
+    }
+
+    @Test
+    @DisplayName("유효기간이 0이면 바로 만료로 판단한다")
+    void tokenShouldBeExpiredWhenValidityZero() {
+        JwtTokenProvider shortLived =
+            new JwtTokenProvider("test-secret-12345678901234567890", 0, 0);
+
+        // when
+        String token = shortLived.generateAccessToken(authentication);
+
+        // then
+        assertThat(shortLived.isTokenExpired(token)).isTrue();
+        assertThat(shortLived.getTokenExpirationTime(token)).isZero();
+    }
+
+    @Test
+    @DisplayName("Refresh 토큰에서도 기본 클레임을 추출할 수 있다")
+    void refreshTokenShouldExposeClaims() {
+        // when
+        String refreshToken = tokenProvider.generateRefreshToken(authentication);
+
+        // then
+        var details = (DiscodeitUserDetails) authentication.getPrincipal();
+        assertThat(tokenProvider.extractUserId(refreshToken)).isEqualTo(details.getUserDto().id());
+        assertThat(tokenProvider.extractUsername(refreshToken)).isEqualTo("kim");
+        assertThat(tokenProvider.getTokenType(refreshToken)).isEqualTo("refresh");
     }
 }
