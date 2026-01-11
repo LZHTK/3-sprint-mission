@@ -79,6 +79,16 @@ CREATE TABLE read_statuses
     UNIQUE (user_id, channel_id)
 );
 
+CREATE TABLE social_accounts
+(
+    id               uuid PRIMARY KEY,
+    created_at       timestamp with time zone NOT NULL,
+    updated_at       timestamp with time zone,
+    provider         varchar(20) NOT NULL,
+    provider_user_id varchar(100) NOT NULL,
+    user_id          uuid NOT NULL,
+    UNIQUE (provider, provider_user_id)
+);
 
 -- 제약 조건
 -- User (1) -> BinaryContent (1)
@@ -137,3 +147,8 @@ ALTER TABLE binary_contents
 
 ALTER TABLE read_statuses
 ADD COLUMN notification_enabled boolean NOT NULL DEFAULT false;
+
+ALTER TABLE social_accounts
+ADD CONSTRAINT fk_social_accounts_user
+    FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE CASCADE;
