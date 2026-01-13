@@ -83,6 +83,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/binaryContents/**").permitAll()
                 .requestMatchers("/api/sse").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/auth/social/**").permitAll()
 
                 // 테스트용 - 캐시 테스트 엔드포인트 허용
                 .requestMatchers("/api/test/cache/**").permitAll()
