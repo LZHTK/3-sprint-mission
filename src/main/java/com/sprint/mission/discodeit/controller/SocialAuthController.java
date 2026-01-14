@@ -67,7 +67,7 @@ public class SocialAuthController {
 
             String token = URLEncoder.encode(result.accessToken(), StandardCharsets.UTF_8);
             String redirectUrl = oAuthProperties.getFrontendSuccessRedirect();
-            response.sendRedirect(redirectUrl + "?token" + token);
+            response.sendRedirect(redirectUrl + "?token=" + token);
         } catch (Exception ex) {
             redirectError(response, "oauth_failed");
         }
