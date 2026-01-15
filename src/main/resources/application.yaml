@@ -122,4 +122,4 @@ oauth:
       token-url: https://kauth.kakao.com/oauth/token
       user-info-url: https://kapi.kakao.com/v2/user/me
       redirect-url: ${OAUTH_KAKAO_REDIRECT_URL:http://localhost:8080/auth/social/callback/kakao}
-      scope: "account_email profile_nickname"
+      scope: "profile_nickname"

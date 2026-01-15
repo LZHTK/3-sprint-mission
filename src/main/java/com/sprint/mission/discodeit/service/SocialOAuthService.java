@@ -132,7 +132,7 @@ public class SocialOAuthService {
 
     private User findOrCreateUser(OAuthUserInfo info) {
         SocialAccount existingAccount =
-            socialAccountRepository.findByProviderAndProviderUserId(
+            socialAccountRepository.findByProviderAndProviderUserIdWithUser(
                 info.provider(), info.providerUserId()
             ).orElse(null);
 
@@ -140,12 +140,22 @@ public class SocialOAuthService {
             return existingAccount.getUser();
         }
 
-        if (!StringUtils.hasText(info.email())) {
-            throw new IllegalStateException("Email is required for social login.");
+        String email = info.email();
+        if (!StringUtils.hasText(email)) {
+            email = info.provider().name().toLowerCase()
+                + "_" + info.providerUserId() + "@social.local";
         }
 
-        User user = userRepository.findByEmail(info.email())
-            .orElseGet(() -> createUser(info));
+        final String finalEmail = email;
+        final OAuthUserInfo finalInfo = new OAuthUserInfo(
+            info.provider(),
+            info.providerUserId(),
+            finalEmail,
+            info.username()
+        );
+
+        User user = userRepository.findByEmail(finalEmail)
+            .orElseGet(() -> createUser(finalInfo));
 
         socialAccountRepository.save(new SocialAccount(
             info.provider(), info.providerUserId(), user
