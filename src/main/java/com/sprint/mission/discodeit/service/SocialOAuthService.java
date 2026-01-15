@@ -51,7 +51,8 @@ public class SocialOAuthService {
             .queryParam("redirect_uri", config.getRedirectUrl())
             .queryParam("scope", config.getScope())
             .queryParam("state", state)
-            .build(true)
+            .build()
+            .encode(StandardCharsets.UTF_8)
             .toUri();
     }
 
@@ -114,7 +115,7 @@ public class SocialOAuthService {
         SocialProvider socialProvider = SocialProvider.from(provider);
 
         if (socialProvider == SocialProvider.GOOGLE) {
-            String id = (String) body.get("id");
+            String id = (String) body.get("sub"); // Google은 sub가 고유 ID
             String email = (String) body.get("email");
             String name = (String) body.get("name");
             return new OAuthUserInfo(socialProvider, id, email, name);
