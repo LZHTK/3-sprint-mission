@@ -45,13 +45,14 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 @Testcontainers
 @MockitoSettings(strictness = Strictness.LENIENT)
-class S3BinaryContentStorageTest {
+public class S3BinaryContentStorageTest {
 
     @Container
     static LocalStackContainer localstack =
@@ -197,133 +198,246 @@ class S3BinaryContentStorageTest {
 
     @Test
     void put_uploadsFileSuccessfully() {
+        // given
         UUID id = UUID.randomUUID();
         byte[] data = "test content".getBytes();
+
+        // when
         UUID result = storage.put(id, data);
+
+        // then
         assertThat(result).isEqualTo(id);
     }
 
     @Test
     void get_returnsStoredFile() throws IOException {
+        // given
         UUID id = UUID.randomUUID();
         byte[] data = "test content".getBytes();
         storage.put(id, data);
 
+        // when
         InputStream result = storage.get(id);
 
+        // then
         assertThat(result.readAllBytes()).isEqualTo(data);
     }
 
     @Test
     void download_returnsPresignedUrl() {
+        // given
         UUID id = UUID.randomUUID();
         BinaryContentDto dto = new BinaryContentDto(id, "test.txt", 10L, "text/plain", BinaryContentStatus.SUCCESS);
 
+        // when
         ResponseEntity<?> response = storage.download(dto);
 
+        // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getFirst("Location")).contains("binary-content");
     }
 
     @Test
-    @DisplayName("put 호출 시 LocalStack 클라이언트 생성 실패 → RuntimeException")
+    @DisplayName("put 호출 시 LocalStack 클라이언트 생성 실패면 RuntimeException")
     void put_whenClientFails_throws() {
+        // given
         TestS3BinaryContentStorage spy = Mockito.spy(storage);
         doThrow(SdkClientException.create("down")).when(spy).buildLocalStackClient();
 
+        // when
         ThrowingCallable when = () -> spy.put(UUID.randomUUID(), "bytes".getBytes());
 
+        // then
         assertThatThrownBy(when).isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    @DisplayName("download 호출 시 Presigned URL helper 스텁")
+    @DisplayName("download 호출 시 Presigned URL helper 실패면 404")
     void download_returnsMetadata() {
+        // given
         TestS3BinaryContentStorage spy = Mockito.spy(storage);
         doReturn("http://example.com/test.txt").when(spy).buildLocalStackPresignedUrl(any(), any());
 
         BinaryContentDto dto = new BinaryContentDto(
             UUID.randomUUID(), "test.txt", 10L, "text/plain", BinaryContentStatus.SUCCESS);
 
+        // when
         ResponseEntity<?> response = spy.download(dto);
 
+        // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getFirst("Location")).contains("test.txt");
     }
 
     @Test
-    @DisplayName("get 호출 시 LocalStack 예외 → 빈 InputStream")
+    @DisplayName("get 호출 시 LocalStack 예외면 빈 InputStream")
     void get_whenClientThrows_returnsEmptyStream() throws IOException {
+        // given
         TestS3BinaryContentStorage spy = Mockito.spy(storage);
         S3Client failingClient = mock(S3Client.class);
         doReturn(failingClient).when(spy).buildLocalStackClient();
         doThrow(SdkClientException.create("fail")).when(failingClient).getObject(any(GetObjectRequest.class));
 
+        // when
         InputStream result = spy.get(UUID.randomUUID());
 
+        // then
         assertThat(result.readAllBytes()).isEmpty();
     }
 
     @Test
-    @DisplayName("download 호출 시 Presigned URL 생성 실패 → 404")
+    @DisplayName("download 호출 시 Presigned URL 생성 실패면 404")
     void download_whenPresignedUrlFails_returns404() {
+        // given
         TestS3BinaryContentStorage spy = Mockito.spy(storage);
         doThrow(RuntimeException.class).when(spy).buildLocalStackPresignedUrl(any(), any());
 
         BinaryContentDto meta = new BinaryContentDto(
             UUID.randomUUID(), "file.txt", 10L, "text/plain", BinaryContentStatus.SUCCESS);
 
+        // when
         ResponseEntity<?> response = spy.download(meta);
 
+        // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
-    @DisplayName("S3Client 생성이 실패하면 put은 RuntimeException을 던진다")
+    @DisplayName("S3Client 생성 실패면 put은 RuntimeException 발생")
     void put_s3ClientCreationFails() {
+        // given
         TestS3BinaryContentStorage spy = Mockito.spy(storage);
         doReturn(null).when(spy).buildLocalStackClient();
 
         BinaryContentDto dto = new BinaryContentDto(
             UUID.randomUUID(), "file.png", 128L, "image/png", BinaryContentStatus.SUCCESS);
 
+        // when
         ThrowingCallable when = () -> spy.put(dto.id(), new byte[]{1, 2});
 
+        // then
         assertThatThrownBy(when).isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    @DisplayName("S3 다운로드 중 예외가 발생하면 빈 InputStream을 반환한다")
+    @DisplayName("S3 다운로드 중 예외 발생 시 빈 InputStream 반환")
     void get_returnsEmptyStreamOnS3Exception() throws Exception {
+        // given
         TestS3BinaryContentStorage spy = Mockito.spy(storage);
         S3Client failingClient = mock(S3Client.class);
         doReturn(failingClient).when(spy).buildLocalStackClient();
         doThrow(SdkClientException.create("boom")).when(failingClient).getObject(any(GetObjectRequest.class));
 
+        // when
         InputStream result = spy.get(UUID.randomUUID());
 
+        // then
         assertThat(result.readAllBytes()).isEmpty();
     }
 
     @Test
-    @DisplayName("recoverPut은 관리자 알림을 저장하고 RuntimeException을 던진다")
+    @DisplayName("recoverPut은 관리자 알림 저장 후 RuntimeException을 던진다")
     void recoverPut_sendsAdminNotification() {
+        // given
         NotificationRepository notificationRepository = mock(NotificationRepository.class);
         S3BinaryContentStorage storage = new S3BinaryContentStorage(
             "access", "secret", "us-east-1", "bucket", 600, notificationRepository);
         ReflectionTestUtils.setField(storage, "adminUserId", UUID.randomUUID().toString());
 
+        // when
         ThrowingCallable when = () -> storage.recoverPut(
             new RuntimeException("fail"), UUID.randomUUID(), "bytes".getBytes());
 
+        // then
         assertThatThrownBy(when).isInstanceOf(RuntimeException.class);
         then(notificationRepository).should().save(any(Notification.class));
     }
 
     @Test
-    @DisplayName("S3Client가 putObject에서 예외를 던지면 RuntimeException을 전파한다")
+    @DisplayName("recoverPut에서 알림 저장 실패 시에도 RuntimeException을 던진다")
+    void recoverPut_handlesNotificationFailure() {
+        // given
+        NotificationRepository notificationRepository = mock(NotificationRepository.class);
+        S3BinaryContentStorage storage = new S3BinaryContentStorage(
+            "access", "secret", "us-east-1", "bucket", 600, notificationRepository);
+        ReflectionTestUtils.setField(storage, "adminUserId", UUID.randomUUID().toString());
+
+        doThrow(new RuntimeException("notify-fail"))
+            .when(notificationRepository).save(any(Notification.class));
+
+        // when
+        ThrowingCallable when = () -> storage.recoverPut(
+            new RuntimeException("fail"), UUID.randomUUID(), "bytes".getBytes());
+
+        // then
+        assertThatThrownBy(when).isInstanceOf(RuntimeException.class);
+        then(notificationRepository).should().save(any(Notification.class));
+    }
+
+    @Test
+    @DisplayName("원본 S3BinaryContentStorage put 성공 경로")
+    void put_originalClass_success() {
+        // given
+        S3BinaryContentStorage storage = new S3BinaryContentStorage(
+            "access", "secret", "us-east-1", "bucket", 600, notificationRepository);
+
+        S3Client mockClient = mock(S3Client.class);
+        S3ClientBuilder builder = mock(S3ClientBuilder.class);
+
+        try (MockedStatic<S3Client> mocked = Mockito.mockStatic(S3Client.class)) {
+            mocked.when(S3Client::builder).thenReturn(builder);
+            given(builder.region(any(Region.class))).willReturn(builder);
+            given(builder.credentialsProvider(any())).willReturn(builder);
+            given(builder.build()).willReturn(mockClient);
+
+            given(mockClient.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+                .willReturn(PutObjectResponse.builder().eTag("etag").build());
+
+            UUID id = UUID.randomUUID();
+
+            // when
+            UUID result = storage.put(id, "data".getBytes(StandardCharsets.UTF_8));
+
+            // then
+            assertThat(result).isEqualTo(id);
+        }
+    }
+
+    @Test
+    @DisplayName("원본 S3BinaryContentStorage download 성공 경로")
+    void download_originalClass_success() throws Exception {
+        // given
+        S3BinaryContentStorage storage = new S3BinaryContentStorage(
+            "access", "secret", "us-east-1", "bucket", 600, notificationRepository);
+
+        S3Presigner mockPresigner = mock(S3Presigner.class);
+        S3Presigner.Builder builder = mock(S3Presigner.Builder.class);
+        PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
+        given(presigned.url()).willReturn(new URI("http://example.com/file").toURL());
+
+        try (MockedStatic<S3Presigner> mocked = Mockito.mockStatic(S3Presigner.class)) {
+            mocked.when(S3Presigner::builder).thenReturn(builder);
+            given(builder.region(any(Region.class))).willReturn(builder);
+            given(builder.credentialsProvider(any())).willReturn(builder);
+            given(builder.build()).willReturn(mockPresigner);
+            given(mockPresigner.presignGetObject(any(GetObjectPresignRequest.class))).willReturn(presigned);
+
+            BinaryContentDto dto = new BinaryContentDto(
+                UUID.randomUUID(), "file.txt", 10L, "text/plain", BinaryContentStatus.SUCCESS);
+
+            // when
+            ResponseEntity<?> response = storage.download(dto);
+
+            // then
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+            assertThat(response.getHeaders().getFirst("Location")).contains("http://example.com/file");
+        }
+    }
+
+    @Test
+    @DisplayName("S3Client가 putObject에서 예외를 던지면 RuntimeException 전파")
     void put_originalClass_clientThrows() {
-        // given: 실제 구현을 사용하지만 S3Client 빌더만 static mock
+        // given
         S3BinaryContentStorage storage = new S3BinaryContentStorage(
             "access", "secret", "us-east-1", "bucket", 600, notificationRepository);
 
@@ -349,32 +463,7 @@ class S3BinaryContentStorageTest {
     }
 
     @Test
-    @DisplayName("원본 S3BinaryContentStorage에서 put 중 S3Client가 예외를 던지면 RuntimeException이 발생한다")
-    void put_originalClass_clientFails() {
-        // given
-        S3BinaryContentStorage storage = new S3BinaryContentStorage(
-            "access", "secret", "us-east-1", "bucket", 600, notificationRepository);
-        S3Client mockClient = mock(S3Client.class);
-        S3ClientBuilder builder = mock(S3ClientBuilder.class);
-
-        try (MockedStatic<S3Client> mocked = Mockito.mockStatic(S3Client.class)) {
-            mocked.when(S3Client::builder).thenReturn(builder);
-            given(builder.region(any(Region.class))).willReturn(builder);
-            given(builder.credentialsProvider(any())).willReturn(builder);
-            given(builder.build()).willReturn(mockClient);
-            doThrow(SdkClientException.create("boom"))
-                .when(mockClient).putObject(any(PutObjectRequest.class), any(RequestBody.class));
-
-            // when
-            ThrowingCallable when = () -> storage.put(UUID.randomUUID(), "data".getBytes());
-
-            // then
-            assertThatThrownBy(when).isInstanceOf(RuntimeException.class);
-        }
-    }
-
-    @Test
-    @DisplayName("원본 S3BinaryContentStorage에서 Presigned URL 생성 실패 시 download는 404를 반환한다")
+    @DisplayName("원본 S3BinaryContentStorage에서 Presigned URL 생성 실패 시 download는 404 반환")
     void download_originalClass_presignFails() {
         // given
         S3BinaryContentStorage storage = new S3BinaryContentStorage(
