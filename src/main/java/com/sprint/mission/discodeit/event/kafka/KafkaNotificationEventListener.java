@@ -7,11 +7,13 @@ import com.sprint.mission.discodeit.event.RoleUpdatedEvent;
 import com.sprint.mission.discodeit.repository.ReadStatusRepository;
 import com.sprint.mission.discodeit.service.NotificationService;
 import com.sprint.mission.discodeit.service.SseService;
+import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -25,19 +27,29 @@ public class KafkaNotificationEventListener {
     private final ReadStatusRepository readStatusRepository;
     private final SseService sseService;
     private final ObjectMapper objectMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${server.instance-id:default}")
     private String instanceId;
 
+    private static final Duration DEDUP_TTL = Duration.ofMinutes(10);
+
     @KafkaListener(
         topics = "discodeit.MessageCreateEvent",
-        groupId = "notification-group-${server.instance-id:default}"
+        groupId = "notification-group"
     )
     public void handleMessageCreateEvent(String kafkaEvent) {
         try {
             MessageCreateEvent event = objectMapper.readValue(kafkaEvent, MessageCreateEvent.class);
 
-            log.info("[Kafka Consumer] 메시지 생성 알림 이벤트 수신 - 인스턴스: {}, 메시지 ID: {}",
+            String dedupKey = "notif:message:" + event.messageId();
+            Boolean first = redisTemplate.opsForValue()
+                .setIfAbsent(dedupKey, "1", DEDUP_TTL);
+            if (!Boolean.TRUE.equals(first)) {
+                return;
+            }
+
+            log.info("[Kafka Consumer] 메시지 알림 이벤트 수신 - 인스턴스: {}, 메시지 ID: {}",
                 instanceId, event.messageId());
 
             var notificationEnabledStatuses = readStatusRepository
@@ -51,31 +63,37 @@ public class KafkaNotificationEventListener {
                         event.content()
                     );
 
-                    //  Redis 기반 SSE로 전송 - 모든 인스턴스에 전파됨
                     sseService.send(
                         List.of(readStatus.getUser().getId()),
                         "notifications.new",
                         notification
                     );
 
-                    log.info("[Kafka Consumer] 새 메시지 알림 완료 - 수신자: {}, 인스턴스: {}, 알림ID: {}",
+                    log.info("[Kafka Consumer] 메시지 알림 완료 - 수신자 {}, 인스턴스: {}, 알림ID: {}",
                         readStatus.getUser().getId(), instanceId, notification.id());
                 }
             }
         } catch (Exception e) {
-            log.error("[Kafka Consumer] 메시지 생성 이벤트 처리 실패 - 인스턴스: {}", instanceId, e);
+            log.error("[Kafka Consumer] 메시지 이벤트 처리 실패 - 인스턴스: {}", instanceId, e);
         }
     }
 
     @KafkaListener(
         topics = "discodeit.RoleUpdatedEvent",
-        groupId = "role-notification-group-${server.instance-id:default}"
+        groupId = "role-notification-group"
     )
     public void handleRoleUpdatedEvent(String kafkaEvent) {
         try {
             RoleUpdatedEvent event = objectMapper.readValue(kafkaEvent, RoleUpdatedEvent.class);
 
-            log.info("[Kafka Consumer] 권한 변경 알림 이벤트 수신 - 인스턴스: {}, 사용자 ID: {}",
+            String dedupKey = "notif:role:" + event.userId() + ":" + event.newRole();
+            Boolean first = redisTemplate.opsForValue()
+                .setIfAbsent(dedupKey, "1", DEDUP_TTL);
+            if (!Boolean.TRUE.equals(first)) {
+                return;
+            }
+
+            log.info("[Kafka Consumer] 권한 변경 알림 이벤트 수신 - 인스턴스: {}, 사용자ID: {}",
                 instanceId, event.userId());
 
             String title = "권한이 변경되었습니다.";
@@ -89,7 +107,7 @@ public class KafkaNotificationEventListener {
                 notification
             );
 
-            log.info("[Kafka Consumer] 권한 변경 알림 완료 - 수신자: {}, 인스턴스: {}, 알림ID: {}",
+            log.info("[Kafka Consumer] 권한 변경 알림 완료 - 수신자 {}, 인스턴스: {}, 알림ID: {}",
                 event.userId(), instanceId, notification.id());
         } catch (Exception e) {
             log.error("[Kafka Consumer] 권한 변경 이벤트 처리 실패 - 인스턴스: {}", instanceId, e);

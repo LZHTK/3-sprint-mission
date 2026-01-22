@@ -6,10 +6,7 @@ import com.sprint.mission.discodeit.service.SseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.event.EventListener;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,24 +16,7 @@ import org.springframework.stereotype.Component;
 public class DistributedSseEventListener {
 
     private final SseService sseService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
-
-    /**
-     * 사용자 로그인/로그아웃 이벤트를 Kafka로 발행
-     * */
-    @Async("eventTaskExecutor")
-    @EventListener
-    public void handleUserLogInOutForKafka(UserLogInOutEvent event) {
-        try {
-            String payload = objectMapper.writeValueAsString(event);
-            kafkaTemplate.send("discodeit.UserLogInOutEvent", payload);
-            log.info("[Kafka Producer] SSE 사용자 상태 이벤트 발행: userId = {}, isLoggedIn = {}",
-                event.userId(), event.isLoggedIn());
-        } catch (Exception e) {
-            log.error("[Kafka Producer] SSE 사용자 상태 이벤트 발행 실패: {}", e.getMessage(), e);
-        }
-    }
 
     /**
      * Kafka에서 사용자 상태 변경 이벤트 수신 및 SSE 전송
