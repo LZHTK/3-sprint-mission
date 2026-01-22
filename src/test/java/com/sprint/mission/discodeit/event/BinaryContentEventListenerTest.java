@@ -19,7 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
-class BinaryContentEventListenerTest {
+public class BinaryContentEventListenerTest {
 
     @Mock private BinaryContentStorage binaryContentStorage;
     @Mock private BinaryContentService binaryContentService;
