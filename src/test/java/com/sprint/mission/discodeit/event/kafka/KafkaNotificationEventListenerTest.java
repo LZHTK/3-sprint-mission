@@ -2,6 +2,7 @@ package com.sprint.mission.discodeit.event.kafka;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -17,6 +18,7 @@ import com.sprint.mission.discodeit.event.RoleUpdatedEvent;
 import com.sprint.mission.discodeit.repository.ReadStatusRepository;
 import com.sprint.mission.discodeit.service.NotificationService;
 import com.sprint.mission.discodeit.service.SseService;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -27,21 +29,33 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 @ExtendWith(MockitoExtension.class)
-class KafkaNotificationEventListenerTest {
+public class KafkaNotificationEventListenerTest {
 
     @Mock private NotificationService notificationService;
     @Mock private ReadStatusRepository readStatusRepository;
     @Mock private SseService sseService;
     @Mock private ObjectMapper objectMapper;
+    @Mock private RedisTemplate<String, Object> redisTemplate;
 
     @InjectMocks private KafkaNotificationEventListener listener;
+
+    private void stubDedupPass() {
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, Object> valueOps = mock(ValueOperations.class);
+        given(redisTemplate.opsForValue()).willReturn(valueOps);
+        given(valueOps.setIfAbsent(anyString(), any(), any(Duration.class))).willReturn(true);
+    }
 
     @Test
     @DisplayName("MessageCreateEvent 를 수신하면 알림과 SSE 전송을 수행한다")
     void handleMessageCreateEvent() throws Exception {
-        // given: 채널 구독자와 JSON 페이로드 역직렬화가 준비됨
+        // given
+        stubDedupPass();
+
         UUID channelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
         UUID subscriberId = UUID.randomUUID();
@@ -52,7 +66,7 @@ class KafkaNotificationEventListenerTest {
         User subscriber = mock(User.class);
         given(subscriber.getId()).willReturn(subscriberId);
 
-        var readStatus = mock(com.sprint.mission.discodeit.entity.ReadStatus.class);
+        var readStatus = mock(ReadStatus.class);
         given(readStatus.getUser()).willReturn(subscriber);
         given(readStatusRepository.findAllByChannelIdAndNotificationEnabledTrue(channelId))
             .willReturn(List.of(readStatus));
@@ -62,10 +76,10 @@ class KafkaNotificationEventListenerTest {
         given(notificationService.create(eq(subscriberId), any(), eq(event.content())))
             .willReturn(notification);
 
-        // when: Kafka 메시지를 처리
+        // when
         listener.handleMessageCreateEvent("json");
 
-        // then: NotificationService와 SSE 전송이 모두 수행됨
+        // then
         then(notificationService).should()
             .create(eq(subscriberId), any(), eq(event.content()));
         then(sseService).should()
@@ -75,7 +89,9 @@ class KafkaNotificationEventListenerTest {
     @Test
     @DisplayName("RoleUpdatedEvent 를 수신하면 단일 사용자에게 알림을 전송한다")
     void handleRoleUpdatedEvent() throws Exception {
-        // given: 역할 변경 이벤트 JSON이 준비됨
+        // given
+        stubDedupPass();
+
         UUID userId = UUID.randomUUID();
         RoleUpdatedEvent event = new RoleUpdatedEvent(userId, Role.USER, Role.ADMIN);
         given(objectMapper.readValue("json", RoleUpdatedEvent.class)).willReturn(event);
@@ -84,33 +100,31 @@ class KafkaNotificationEventListenerTest {
             UUID.randomUUID(), Instant.now(), userId, "role", "USER -> ADMIN");
         given(notificationService.create(eq(userId), any(), any())).willReturn(notification);
 
-        // when: Kafka 메시지를 처리
+        // when
         listener.handleRoleUpdatedEvent("json");
 
-        // then: 알림 생성과 SSE 전송이 한 번씩 호출됨
+        // then
         then(notificationService).should().create(eq(userId), any(), any());
         then(sseService).should()
             .send(eq(List.of(userId)), eq("notifications.role_changed"), eq(notification));
     }
 
     @Test
-    @DisplayName("JSON 역직렬화 실패 시 예외를 잡고 로깅 후 종료한다")
+    @DisplayName("JSON 역직렬화 실패 시 예외는 삼키고 종료한다")
     void handleMessageCreateEvent_jsonError() throws Exception {
-        // given: ObjectMapper 가 예외를 던지도록 설정
         given(objectMapper.readValue("bad", MessageCreateEvent.class))
             .willThrow(new RuntimeException("boom"));
 
-        // when: Kafka 메시지 처리 시도
         ThrowingCallable when = () -> listener.handleMessageCreateEvent("bad");
-
-        // then: 예외가 외부로 던져지지 않음
         assertThatCode(when).doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("메시지 작성자에게는 알림과 SSE 전송을 하지 않는다")
     void handleMessageCreateEvent_skipsAuthor() throws Exception {
-        // given: 구독자와 작성자가 동일한 상황
+        // given
+        stubDedupPass();
+
         UUID channelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
         MessageCreateEvent event = new MessageCreateEvent(
@@ -124,22 +138,20 @@ class KafkaNotificationEventListenerTest {
         given(readStatusRepository.findAllByChannelIdAndNotificationEnabledTrue(channelId))
             .willReturn(List.of(status));
 
-        // when: 메시지 처리
+        // when
         listener.handleMessageCreateEvent("json");
 
-        // then: 본인에게는 알림 전송 없음
+        // then
         then(notificationService).shouldHaveNoInteractions();
         then(sseService).shouldHaveNoInteractions();
     }
 
     @Test
-    @DisplayName("RoleUpdatedEvent 역직렬화 실패 시에도 예외를 전파하지 않는다")
+    @DisplayName("RoleUpdatedEvent 역직렬화 실패 시 예외는 전파하지 않는다")
     void handleRoleUpdatedEvent_jsonError() throws Exception {
-        // given
         given(objectMapper.readValue("bad", RoleUpdatedEvent.class))
             .willThrow(new RuntimeException("boom"));
 
-        // when & then
         ThrowingCallable when = () -> listener.handleRoleUpdatedEvent("bad");
         assertThatCode(when).doesNotThrowAnyException();
         then(notificationService).shouldHaveNoInteractions();
