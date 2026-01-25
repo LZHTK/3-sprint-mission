@@ -44,8 +44,6 @@ REST API, WebSocket(STOMP), SSE를 함께 지원하며 실시간 메시징/알�
 ```
 com.sprint.mission.discodeit
 ├── DiscodeitApplication
-├── aop
-├── common
 ├── config
 ├── controller
 │   └── api
