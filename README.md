@@ -66,5 +66,3 @@ com.sprint.mission.discodeit
 └── DiscodeitApplication
 ```
 ---
-
-
