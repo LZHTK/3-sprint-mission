@@ -43,28 +43,40 @@ REST API, WebSocket(STOMP), SSE를 함께 지원하며 실시간 메시징/알�
 ## 🧾 패키지 구조
 ```
 com.sprint.mission.discodeit
+├── DiscodeitApplication
 ├── aop
 ├── common
 ├── config
 ├── controller
-│ └── api
+│   └── api
 ├── dto
-│ ├── data
-│ ├── request
-│ └── response
+│   ├── data
+│   ├── request
+│   └── response
 ├── entity
-│ └── base
+│   └── base
+├── event
+│   ├── kafka
+│   └── message
 ├── exception
+│   ├── auth
+│   ├── binarycontent
+│   ├── channel
+│   ├── message
+│   ├── notification
+│   ├── readstatus
+│   └── user
 ├── mapper
+├── redis
 ├── repository
+├── security
+│   ├── jwt
+│   └── websocket
 ├── service
-│ ├── basic
-│ └── distributed
-├── storage
-│ ├── local
-│ └── s3
-└── DiscodeitApplication
+│   ├── basic
+│   └── distributed
+└── storage
+    ├── local
+    └── s3
 ```
 ---
-
-
